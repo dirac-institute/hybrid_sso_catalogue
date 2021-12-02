@@ -1,6 +1,9 @@
 from scipy.spatial import cKDTree
 import numpy as np
 import pandas as pd
+from dask.distributed import Client, progress
+import dask
+
 
 def get_catalogues(s3m_path="catalogues/s3m_propagated.h5",
                    mpcorb_path="catalogues/mpcorb_propagated.h5"):
@@ -9,6 +12,8 @@ def get_catalogues(s3m_path="catalogues/s3m_propagated.h5",
     mpcorb = pd.read_hdf(mpcorb_path, key="df")
     return s3m, mpcorb
 
+
+@dask.delayed
 def merge_catalogues(sim, real, min_mag, max_mag, k=100, d_max=0.1):
     """Merge the simulated solar system catalogue with the real MPCORB data for a
     certain magnitude bin.
@@ -87,4 +92,24 @@ def merge_catalogues(sim, real, min_mag, max_mag, k=100, d_max=0.1):
         else:
             no_match_count += 1
             
-    return np.array(sim_id[taken]), no_match_count
+    np.save("output/matched_{}_{}.npy".format(min_mag, max_mag), np.array(sim_id[taken]))
+            
+    return np.array(sim_id[taken])
+
+
+if __name__ == "__main__":
+    # start the Dask client
+    client = Client(n_workers=48, threads_per_worker=1, memory_limit='16GB')
+    
+    # get the catalogues
+    s3m, mpcorb = get_catalogues()
+    
+    # loop over magnitude bins and add them to the Dask pool thing
+    H_bins = np.arange(-2, 28 + 1)
+    output = []
+    for i in range(len(H_bins) - 2):
+        output.append(merge_catalogues(s3m, mpcorb, i, i + 1))
+        
+    results = client.compute(output)
+    progress(*results)
+    np.save("output/all.npy", results)
