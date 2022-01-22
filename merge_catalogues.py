@@ -53,7 +53,7 @@ def merge_catalogues(sim, real, min_mag, max_mag, k=100, d_max=0.1):
     sim_xyz = np.array([sim["x"].values, sim["y"].values, sim["z"].values]).T
     
     v_sim = np.array([sim.vx.values, sim.vy.values, sim.vz.values])
-    v_real = np.array([real.vx.values, real.vy.values, real.vz.values])
+    v_real = np.array([real.vx.values, real.vy.values, real.vz.values]).T
     
     # get the matching simulated data and build a K-D Tree
     sim_mag_mask = np.logical_and(sim.H >= min_mag, sim.H < max_mag)
@@ -61,15 +61,19 @@ def merge_catalogues(sim, real, min_mag, max_mag, k=100, d_max=0.1):
     tree = cKDTree(sim_xyz[sim_mag_mask])
     
     # get the matching real data from MPCORB
+#     print(min_mag, max_mag)
     real_mag_mask = np.logical_and(real.H >= min_mag, real.H <= max_mag)
     real_objects = real_xyz[real_mag_mask]
+    real_velocities = v_real[real_mag_mask]
     
     # keep track of objects already assigned and a count of how many had no matches
     taken = []
     no_match_count = 0
     
+#     print(len(real_objects), len(real_velocities), len(real_xyz))
+    
     # iterate over every object in the real catalogue
-    for obj in real_objects:
+    for obj, vel in zip(real_objects, real_velocities):
         
         # find the nearest k neighbours within d_max and mask further neighbours
         distances, inds = tree.query(obj, k=k, distance_upper_bound=d_max)
@@ -78,10 +82,12 @@ def merge_catalogues(sim, real, min_mag, max_mag, k=100, d_max=0.1):
         # get only the options which haven't yet been assigned
         unassigned_inds = np.setdiff1d(inds, taken, assume_unique=True)
 
+#         print(obj, unassigned_inds)
+        
         # if there are many matching object
         if len(unassigned_inds) > 0:
             # find the closest velocity of the bunch and assign it
-            best = np.sum((v_sim[:, unassigned_inds] - v_real[:, unassigned_inds])**2, axis=0).argmin()
+            best = np.sum((v_sim[:, unassigned_inds] - vel[:, np.newaxis])**2, axis=0).argmin()
             taken.append(unassigned_inds[best])
         
         # if only one then just immediately assign it
@@ -98,18 +104,20 @@ def merge_catalogues(sim, real, min_mag, max_mag, k=100, d_max=0.1):
 
 
 if __name__ == "__main__":
+    
     # start the Dask client
     client = Client(n_workers=48, threads_per_worker=1, memory_limit='16GB')
-    
+
     # get the catalogues
     s3m, mpcorb = get_catalogues()
+    s3m_handle, = client.scatter([s3m], broadcast=True)
+    mpcorb_handle, = client.scatter([mpcorb], broadcast=True)
     
-    # loop over magnitude bins and add them to the Dask pool thing
     H_bins = np.arange(-2, 28 + 1)
     output = []
-    for i in range(len(H_bins) - 2):
-        output.append(merge_catalogues(s3m, mpcorb, i, i + 1))
+    for left, right in zip(H_bins[:-1], H_bins[1:]):
+        output.append(merge_catalogues(s3m_handle, mpcorb_handle, left, right))
         
-    results = client.compute(output)
+    results = client.compute(output, timeout=300)
     progress(*results)
     np.save("output/all.npy", results)
