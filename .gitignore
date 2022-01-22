@@ -134,4 +134,4 @@ dmypy.json
 *.h5
 *.DAT
 catalogues/*
-dask-worker-space/*
+*/dask-worker-space/*
