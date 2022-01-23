@@ -41,10 +41,10 @@ def df_to_orbits(df, coord_system="KEP"):
                 df.e,
                 np.deg2rad(df.i),
                 np.deg2rad(df.Omega),
-                np.deg2rad(df.arg_peri),
+                np.deg2rad(df.argperi),
                 np.deg2rad(df.mean_anom),
                 np.repeat(3, len(df)).astype(int),  # keplerian input
-                df.epoch,
+                df.t_0,
                 np.repeat(3, len(df)).astype(int),  # TT timescale
                 df.H,
                 df.G
@@ -78,7 +78,7 @@ def df_to_orbits(df, coord_system="KEP"):
                 df.vy,
                 df.vz,
                 np.repeat(1, len(df)).astype(int),  # cartesian input
-                df.t,
+                df.t_0,
                 np.repeat(3, len(df)).astype(int),  # TT timescale
                 df.H,
                 df.g
@@ -89,30 +89,78 @@ def df_to_orbits(df, coord_system="KEP"):
     return orbits
 
 
-def transform_catalogue(df, coord_system, final_coord_system):
-    assert oo.pyoorb.oorb_init() == 0
+def columns_from_coords(coords):
+    """Get df column names from coordinates
 
-    orbits = df_to_orbits(df=df, coord_system=coord_system)
+    Parameters
+    ----------
+    coords : `str`
+        One of CART, COM and KEP
 
-    final_etype = 1 if final_coord_system == "CART" else 2 if final_coord_system == "COM" else 3
+    Returns
+    -------
+    columns : `list`
+        The column names
 
+    Raises
+    ------
+    ValueError
+        Bad coordinate system inputted
+    """
+    columns = None
+    if coords == "CART":
+        columns = ["id", "x", "y", "z", "vx", "vy", "vz", "coords", "t_0", "time_type", "H", "g"]
+    elif coords == "COM":
+        columns = ["id", "q", "e", "i", "Omega", "argperi", "t_p", "coords", "t_0", "time_type", "H", "g"]
+    elif coords == "KEP":
+        columns = ["id", "a", "e", "i", "Omega", "argperi", "mean_anom", "coords", "t_0", "time_type",
+                   "H", "g"]
+    else:
+        raise ValueError("Bad coordinate system")
+    return columns
+
+
+def transform_catalogue(df, current_coords, transformed_coords, initialise=True):
+    """Transform a catalogue from coordinate system to another
+
+    Parameters
+    ----------
+    df : `Pandas DataFrame`
+        DataFrame contained the catalogue
+    current_coords : `str`
+        Current coordinate system (one of CART, COM, KEP)
+    transformed_coords : `str`
+        Coordinate system that you want to transform to (one of CART, COM, KEP)
+
+    Returns
+    -------
+    transformed_df : `Pandas DataFrame`
+        The transformed catalogue
+
+    Raises
+    ------
+    ValueError
+        Bad coordinate system entered
+    """
+    # initialise openorb and make sure it isn't broken
+    if initialise:
+        assert oo.pyoorb.oorb_init() == 0
+
+    # convert the dataframe to orbit array
+    orbits = df_to_orbits(df=df, coord_system=current_coords)
+
+    # ensure coordinate systems are okay
+    if transformed_coords not in ["CART", "COM", "KEP"]:
+        raise ValueError("Bad coordinate system")
+
+    # perform the transformation
+    final_etype = 1 if transformed_coords == "CART" else 2 if transformed_coords == "COM" else 3
     transformed_orbits, error = oo.pyoorb.oorb_element_transformation(in_orbits=orbits,
                                                                       in_element_type=final_etype)
     assert error == 0
 
-    columns = None
-    if final_coord_system == "CART":
-        columns = ["id", "x", "y", "z", "vx", "vy", "vz", "coords", "epoch", "time_type", "H", "g"]
-    elif final_coord_system == "COM":
-        columns = ["id", "q", "e", "i", "Omega", "argperi", "t_p", "coords", "epoch", "time_type", "H", "g"]
-    elif final_coord_system == "KEP":
-        columns = ["id", "a", "e", "i", "Omega", "argperi", "mean_anom", "coords", "epoch", "time_type",
-                   "H", "g"]
-    else:
-        raise ValueError("Invalid coordinate system")
-
     # convert orbits back to a df
-    transformed_df = pd.DataFrame(transformed_orbits, columns=columns)
+    transformed_df = pd.DataFrame(transformed_orbits, columns=columns_from_coords(transformed_coords))
 
     # drop the useless columns
     transformed_df.drop(labels=["coords", "time_type"], axis=1)
@@ -123,7 +171,59 @@ def transform_catalogue(df, coord_system, final_coord_system):
     return transformed_df
 
 
-def propagate_catalogues(orbits, until_when, dynmodel="2"):
-    assert oo.pyoorb.oorb_init() == 0
+def propagate_catalogues(df, until_when, coords="COM", dynmodel="2", initialise=True):
+    """Propagate a catalogue until a certain time
+
+    Parameters
+    ----------
+    df : `Pandas DataFrame`
+        DataFrame contained the catalogue
+    until_when : `float`
+        Modified Julian date for when to evolve until
+    coords : `str`, optional
+        Coordinate system (one of CART, COM, KEP), by default "COM"
+    dynmodel : `str`, optional
+        Which model to use (basically 2=fast, N=accurate), by default "2"
+    initialise : `boolean`, optional
+        Whether to initialise openorb, by default True
+
+    Returns
+    -------
+    propagated_df : `Pandas DataFrame`
+        The propagated catalogue
+
+    Raises
+    ------
+    ValueError
+        Bad dynmodel entered
+    """
+    # initialise openorb and make sure it isn't broken
+    if initialise:
+        assert oo.pyoorb.oorb_init() == 0
+
+    # convert the dataframe to orbit array
+    orbits = df_to_orbits(df=df, coord_system=coords)
+
+    # ensure coordinate systems are okay
+    if dynmodel not in ["2", "N"]:
+        raise ValueError("Bad dynmodel system")
+
+    # perform the transformation
+    propagated_orbits, error = oo.pyoorb.oorb_propagation(in_orbits=orbits,
+                                                          in_epoch=np.array([until_when, 3],
+                                                                            dtype=np.double, order='F'),
+                                                          in_dynmodel=dynmodel)
+    assert error == 0
+
+    # convert orbits back to a df
+    propagated_df = pd.DataFrame(propagated_orbits, columns=columns_from_coords(coords))
+
+    # drop the useless columns
+    propagated_df.drop(labels=["coords", "time_type"], axis=1)
+
+    # add the designations back in
+    propagated_df["des"] = df.index.values
+
+    return propagated_df
 
     
