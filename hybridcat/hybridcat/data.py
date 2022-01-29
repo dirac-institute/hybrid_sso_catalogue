@@ -4,6 +4,23 @@ from os.path import isfile
 
 def create_mpcorb_from_json(in_path="../catalogues/mpcorb_extended.json",
                             out_path="../catalogues/mpcorb_initial.h5", force=False):
+    """Create mpcorb catalogue from the JSON that can be found
+    here: https://minorplanetcenter.net/Extended_Files/mpcorb_extended.json.gz
+
+    Parameters
+    ----------
+    in_path : `str`, optional
+        Path to the input json file, by default "../catalogues/mpcorb_extended.json"
+    out_path : `str`, optional
+        Path to the output h5 file that will be created, by default "../catalogues/mpcorb_initial.h5"
+    force : `bool`, optional
+        Whether to forcibly recreate the file even if it exists, by default False
+
+    Returns
+    -------
+    mpcorb_df : `Pandas DataFrame`
+        Dataframe containing the mpcorb catalogue
+    """
     # if the file doesn't exist yet or you forcibly want to recreate it
     if not isfile(out_path) or force:
         # convert json to pandas Dataframe
