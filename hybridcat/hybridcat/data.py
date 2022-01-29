@@ -6,8 +6,8 @@ import pandas as pd
 from os.path import isfile
 
 
-def create_mpcorb_from_json(in_path="../catalogues/original_data/mpcorb_extended.json",
-                            out_path="../catalogues/initial/mpcorb.h5", force=False):
+def create_mpcorb_from_json(in_path="../catalogues/mpcorb_extended.json",
+                            out_path="../catalogues/mpcorb_initial.h5", force=False):
 
     if not isfile(out_path) or force:
         mpcorb_df = pd.read_json(in_path)
@@ -29,28 +29,28 @@ def create_mpcorb_from_json(in_path="../catalogues/original_data/mpcorb_extended
     return mpcorb_df
 
 
-# def create_s3m_from_files(in_path="../catalogues/original_data/s3m/", out_path="../catalogues/initial/s3m.h5"):
-#     names_s3m = ['id', 'format', 'q', 'e', 'i', 'Omega', 'argperi', 't_p',
-#                 'H', 't_0', 'INDEX', 'N_PAR', 'MOID', 'COMPCODE']
+def create_s3m_from_files(in_path="../catalogues/original_data/s3m/", out_path="../catalogues/initial/s3m.h5"):
+    names_s3m = ['id', 'format', 'q', 'e', 'i', 'Omega', 'argperi', 't_p',
+                'H', 't_0', 'INDEX', 'N_PAR', 'MOID', 'COMPCODE']
 
-#     files_s3m = ['S0', 'S1_00', 'S1_01', 'S1_02', 'S1_03', 'S1_04', 'S1_05',
-#                 'S1_06', 'S1_07', 'S1_08', 'S1_09', 'S1_10', 'S1_11', 'S1_12',
-#                 'S1_13', "SL", "St5", "ST"]
+    files_s3m = ['S0', 'S1_00', 'S1_01', 'S1_02', 'S1_03', 'S1_04', 'S1_05',
+                'S1_06', 'S1_07', 'S1_08', 'S1_09', 'S1_10', 'S1_11', 'S1_12',
+                'S1_13', "SL", "St5", "ST"]
 
-# dfs = [None for i in range(len(files_s3m))]
+    dfs = [None for i in range(len(files_s3m))]
 
-# for i in range(len(files_s3m)):
-#     print(files_s3m[i])
-#     dfs[i] = pd.read_csv(s3m_data_path + "{}.s3m".format(files_s3m[i]),
-#                          comment="!", delim_whitespace=True,
-#                          header=None, names=names_s3m, skiprows=2)
+    for i in range(len(files_s3m)):
+        print(files_s3m[i])
+        dfs[i] = pd.read_csv(s3m_data_path + "{}.s3m".format(files_s3m[i]),
+                            comment="!", delim_whitespace=True,
+                            header=None, names=names_s3m, skiprows=2)
 
-# s3m_df = pd.concat(dfs)
-# # make sure the indices are unique
-# s3m_df.set_index("id", inplace=True)
+    s3m_df = pd.concat(dfs)
+    # make sure the indices are unique
+    s3m_df.set_index("id", inplace=True)
 
-# # drop anything with e = 1.0 because openorb can't do it
-# s3m_df.drop(labels=s3m_df.index[s3m_df.e == 1.0], axis=0, inplace=True)
+    # drop anything with e = 1.0 because openorb can't do it
+    s3m_df.drop(labels=s3m_df.index[s3m_df.e == 1.0], axis=0, inplace=True)
 
-# # save to hdf5
-# s3m_df.to_hdf(s3m_h5_path, key="df", mode="w")
+    # save to hdf5
+    s3m_df.to_hdf(s3m_h5_path, key="df", mode="w")
