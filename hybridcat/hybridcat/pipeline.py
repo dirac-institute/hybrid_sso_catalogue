@@ -1,9 +1,7 @@
 import hybridcat.data as data
 import hybridcat.transform_orbits as transform_orbits
 # import hybridcat.merge_catalogues as merge
-import pandas as pd
 from astropy.time import Time
-from time import time
 
 
 class HybridCreator():
