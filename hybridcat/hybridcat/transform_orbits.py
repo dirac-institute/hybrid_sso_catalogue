@@ -1,15 +1,8 @@
 import numpy as np
-import h5py as h5
-from astropy.time import Time
-import astropy.units as u
-import matplotlib.pyplot as plt
-
 import pickle
 pickle.HIGHEST_PROTOCOL = 4
 
 import pandas as pd
-import os.path
-
 import pyoorb as oo
 
 
