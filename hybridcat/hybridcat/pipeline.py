@@ -11,6 +11,39 @@ class HybridCreator():
                  d_max=0.1, n_neighbours=100, propagate_date="2022-03-01", recreate=False,
                  dynmodel="2", H_bins=np.arange(-2, 28 + 1), n_workers=48, memory_limit="16GB", timeout=300,
                  save_all=True, save_final=True, verbose=False):
+        """HybridCreater masterClass used for creating a hybrid catalogue
+
+        Parameters
+        ----------
+        catalogue_folder : `str`, optional
+            Path to the folder containg catalogues, by default "catalogues/"
+        output_folder : `str`, optional
+            Path to where to place temporary output during merging, by default "output/"
+        d_max : `float`, optional
+            Maximum distance of a neighbour in AU, by default 0.1
+        n_neighbours : `int`, optional
+            Number of neighbours to consider in the matching, by default 100
+        propagate_date : `str`, optional
+            Date to which you want to propagate the catalogues, by default "2022-03-01"
+        recreate : `bool`, optional
+            Whether to recreate files if they already exist, by default False
+        dynmodel : `str`, optional
+            Which dynmodel to use (2-body or N-body), by default "2"
+        H_bins : `list`, optional
+            Magnitude bins to split the catalogues into during merge, by default np.arange(-2, 28 + 1)
+        n_workers : `int`, optional
+            How many workers to use with dask whilst merging, by default 48
+        memory_limit : `str`, optional
+            How much memory to assign each worker, by default "16GB"
+        timeout : `int`, optional
+            Dask timeout, by default 300
+        save_all : `bool`, optional
+            Whether to save every dataframe at each preprocessing step, by default True
+        save_final : `bool`, optional
+            Whether to save the final dataframes after all preprocessing, by default True
+        verbose : `bool`, optional
+            Whether to print stuff about progress, by default False
+        """
         self.catalogue_folder = catalogue_folder
         self.output_folder = output_folder
         self.d_max = d_max
@@ -27,6 +60,7 @@ class HybridCreator():
         self.verbose = verbose
 
     def create_initial_catalogues(self):
+        """ Create the initial catalogues or simply read them if they exist """
         self.mpcorb = data.create_mpcorb_from_json(in_path=self.catalogue_folder + "mpcorb_extended.json",
                                                    out_path=self.catalogue_folder + "mpcorb_initial.h5",
                                                    recreate=self.recreate, save=self.save_all)
@@ -36,6 +70,7 @@ class HybridCreator():
                                               recreate=self.recreate, save=self.save_all)
 
     def transform_mpcorb(self):
+        """ Convert mpcorb to cometary coordinates to match S3m """
         self.mpcorb = transform.transform_catalogue(self.mpcorb,
                                                     current_coords="KEP", transformed_coords="COM")
         # convert back to degress for the angles
@@ -46,9 +81,12 @@ class HybridCreator():
             self.mpcorb.to_hdf(self.catalogue_folder + "mpcorb_cometary.h5", key="df", mode="w")
 
     def propagate_catalogues(self):
+        """ Propagate both catalogues to the same time """
         until_when = Time(self.propagate_date).mjd
         self.mpcorb = transform.propagate_catalogues(self.mpcorb, until_when=until_when,
                                                      dynmodel=self.dynmodel, initialise=True)
+
+        # initialise=False the second time so that openorb doesn't get mad
         self.s3m = transform.propagate_catalogues(self.s3m, until_when=until_when,
                                                   dynmodel=self.dynmodel, initialise=False)
 
@@ -57,6 +95,7 @@ class HybridCreator():
             self.s3m.to_hdf(self.catalogue_folder + "s3m_propagated.h5", key="df", mode="w")
 
     def preprocessing(self):
+        """ Preprocess the mpcorb and s3m catalogues to prepare for merging """
         if self.verbose:
             print("Started preprocessing")
 
@@ -73,6 +112,7 @@ class HybridCreator():
             print("Orbits propagated\nPreprocessing done")
 
     def merge_catalogues(self):
+        """ Merge the two catalogues! (Output saved in self.output_folder) """
         if self.verbose:
             print("Starting the merge now")
         merge.merge_catalogues(self.mpcorb, self.s3m, output_folder=self.output_folder, H_bins=self.H_bins,
@@ -82,6 +122,7 @@ class HybridCreator():
             print("Done merging!")
 
     def save_hybrid(self):
+        """ Save the hybrid catalogue as a new h5 file """
         # first work out which S3m objects we can delete
         delete_these = []
         for left, right in zip(self.H_bins[:-1], self.H_bins[1:]):
@@ -98,6 +139,7 @@ class HybridCreator():
         self.hybrid.to_hdf(self.catalogue_folder + "hybrid.h5", key="df", mode="w")
 
 def merge_it():
+    """ Quick function that does the whole merging process (using this as entry point) """
     the_creator = HybridCreator()
     the_creator.preprocessing()
     the_creator.merge_catalogues()
