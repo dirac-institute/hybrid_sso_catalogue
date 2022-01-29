@@ -3,7 +3,7 @@ from os.path import isfile
 
 
 def create_mpcorb_from_json(in_path="../catalogues/mpcorb_extended.json",
-                            out_path="../catalogues/mpcorb_initial.h5", force=False):
+                            out_path="../catalogues/mpcorb_initial.h5", recreate=False):
     """Create mpcorb catalogue from the JSON that can be found
     here: https://minorplanetcenter.net/Extended_Files/mpcorb_extended.json.gz
 
@@ -13,7 +13,7 @@ def create_mpcorb_from_json(in_path="../catalogues/mpcorb_extended.json",
         Path to the input json file, by default "../catalogues/mpcorb_extended.json"
     out_path : `str`, optional
         Path to the output h5 file that will be created, by default "../catalogues/mpcorb_initial.h5"
-    force : `bool`, optional
+    recreate : `bool`, optional
         Whether to forcibly recreate the file even if it exists, by default False
 
     Returns
@@ -22,7 +22,7 @@ def create_mpcorb_from_json(in_path="../catalogues/mpcorb_extended.json",
         Dataframe containing the mpcorb catalogue
     """
     # if the file doesn't exist yet or you forcibly want to recreate it
-    if not isfile(out_path) or force:
+    if not isfile(out_path) or recreate:
         # convert json to pandas Dataframe
         mpcorb_df = pd.read_json(in_path)
 
@@ -44,28 +44,49 @@ def create_mpcorb_from_json(in_path="../catalogues/mpcorb_extended.json",
     return mpcorb_df
 
 
-def create_s3m_from_files(in_path="../catalogues/s3m_files/", out_path="../catalogues/s3m_initial.h5"):
-    # define the column and file names
-    names_s3m = ['id', 'format', 'q', 'e', 'i', 'Omega', 'argperi', 't_p',
-                'H', 't_0', 'INDEX', 'N_PAR', 'MOID', 'COMPCODE']
+def create_s3m_from_files(in_path="../catalogues/s3m_files/", out_path="../catalogues/s3m_initial.h5",
+                          recreate=False):
+    """Create S3m catalogue from the files in Grav+2011
 
-    files_s3m = ['S0', 'S1_00', 'S1_01', 'S1_02', 'S1_03', 'S1_04', 'S1_05',
-                'S1_06', 'S1_07', 'S1_08', 'S1_09', 'S1_10', 'S1_11', 'S1_12',
-                'S1_13', "SL", "St5", "ST"]
+    Parameters
+    ----------
+    in_path : `str`, optional
+        Path to the input file folder, by default "../catalogues/s3m_files/"
+    out_path : `str`, optional
+        Path to the output h5 file that will be created, by default "../catalogues/s3m_initial.h5"
+    recreate : `bool`, optional
+        Whether to forcibly recreate the file even if it exists, by default False
 
-    # create a dataframe for each file
-    dfs = [pd.read_csv(in_path + "{}.s3m".format(files_s3m[i]), comment="!", delim_whitespace=True,
-                       header=None, names=names_s3m, skiprows=2)
-           for i in range(len(files_s3m))]
+    Returns
+    -------
+    s3m_df : `Pandas DataFrame`
+        Dataframe containing the S3m catalogue
+    """
+    if not isfile(out_path) or recreate:
+        # define the column and file names
+        names_s3m = ['id', 'format', 'q', 'e', 'i', 'Omega', 'argperi', 't_p',
+                    'H', 't_0', 'INDEX', 'N_PAR', 'MOID', 'COMPCODE']
 
-    # stick them all together
-    s3m_df = pd.concat(dfs)
+        files_s3m = ['S0', 'S1_00', 'S1_01', 'S1_02', 'S1_03', 'S1_04', 'S1_05',
+                    'S1_06', 'S1_07', 'S1_08', 'S1_09', 'S1_10', 'S1_11', 'S1_12',
+                    'S1_13', "SL", "St5", "ST"]
 
-    # make sure the indices are unique
-    s3m_df.set_index("id", inplace=True)
+        # create a dataframe for each file
+        dfs = [pd.read_csv(in_path + "{}.s3m".format(files_s3m[i]), comment="!", delim_whitespace=True,
+                        header=None, names=names_s3m, skiprows=2)
+            for i in range(len(files_s3m))]
 
-    # drop anything with e = 1.0 because openorb can't do it
-    s3m_df.drop(labels=s3m_df.index[s3m_df.e == 1.0], axis=0, inplace=True)
+        # stick them all together
+        s3m_df = pd.concat(dfs)
 
-    # save to hdf5
-    s3m_df.to_hdf(out_path, key="df", mode="w")
+        # make sure the indices are unique
+        s3m_df.set_index("id", inplace=True)
+
+        # drop anything with e = 1.0 because openorb can't do it
+        s3m_df.drop(labels=s3m_df.index[s3m_df.e == 1.0], axis=0, inplace=True)
+
+        # save to hdf5
+        s3m_df.to_hdf(out_path, key="df", mode="w")
+    else:
+        s3m_df = pd.read_hdf(out_path, key="df")
+    return s3m_df
