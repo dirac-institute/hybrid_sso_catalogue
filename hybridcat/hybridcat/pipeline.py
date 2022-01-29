@@ -46,15 +46,14 @@ class HybridCreator():
             print("Started preprocessing")
 
         self.create_initial_catalogues()
-        
         if self.verbose:
             print("Catalogues created/read")
         
-        self.mpcorb = transform_orbits.transform_catalogue(self.mpcorb, current_coords="KEP",
+        self.mpcorb = transform_orbits.transform_catalogue(self.mpcorb,
+                                                           current_coords="KEP",
                                                            transformed_coords="COM")
         if self.save_all:
             self.mpcorb.to_hdf(self.catalogue_folder + "mpcorb_cometary.h5", key="df", mode="w")
-
         if self.verbose:
             print("mpcorb coordinate conversion done")
         
