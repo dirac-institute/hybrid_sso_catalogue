@@ -3,7 +3,7 @@ from os.path import isfile
 
 
 def create_mpcorb_from_json(in_path="../catalogues/mpcorb_extended.json",
-                            out_path="../catalogues/mpcorb_initial.h5", recreate=False):
+                            out_path="../catalogues/mpcorb_initial.h5", recreate=False, save=True):
     """Create mpcorb catalogue from the JSON that can be found
     here: https://minorplanetcenter.net/Extended_Files/mpcorb_extended.json.gz
 
@@ -15,6 +15,8 @@ def create_mpcorb_from_json(in_path="../catalogues/mpcorb_extended.json",
         Path to the output h5 file that will be created, by default "../catalogues/mpcorb_initial.h5"
     recreate : `bool`, optional
         Whether to forcibly recreate the file even if it exists, by default False
+    self : `bool`, optional
+        Whether to save the dataframe, by default True
 
     Returns
     -------
@@ -37,7 +39,9 @@ def create_mpcorb_from_json(in_path="../catalogues/mpcorb_extended.json",
 
         # adjust to modified JD and save file
         mpcorb_df.t_0 = mpcorb_df.t_0 - 2400000.5
-        mpcorb_df.to_hdf(out_path, mode="w", key="df")
+
+        if save:
+            mpcorb_df.to_hdf(out_path, mode="w", key="df")
     else:
         # just read the file
         mpcorb_df = pd.read_hdf(out_path, key="df")
@@ -45,7 +49,7 @@ def create_mpcorb_from_json(in_path="../catalogues/mpcorb_extended.json",
 
 
 def create_s3m_from_files(in_path="../catalogues/s3m_files/", out_path="../catalogues/s3m_initial.h5",
-                          recreate=False):
+                          recreate=False, save=True):
     """Create S3m catalogue from the files in Grav+2011
 
     Parameters
@@ -56,6 +60,8 @@ def create_s3m_from_files(in_path="../catalogues/s3m_files/", out_path="../catal
         Path to the output h5 file that will be created, by default "../catalogues/s3m_initial.h5"
     recreate : `bool`, optional
         Whether to forcibly recreate the file even if it exists, by default False
+    self : `bool`, optional
+        Whether to save the dataframe, by default True
 
     Returns
     -------
@@ -85,8 +91,9 @@ def create_s3m_from_files(in_path="../catalogues/s3m_files/", out_path="../catal
         # drop anything with e = 1.0 because openorb can't do it
         s3m_df.drop(labels=s3m_df.index[s3m_df.e == 1.0], axis=0, inplace=True)
 
-        # save to hdf5
-        s3m_df.to_hdf(out_path, key="df", mode="w")
+        # save to h5
+        if save:
+            s3m_df.to_hdf(out_path, key="df", mode="w")
     else:
         s3m_df = pd.read_hdf(out_path, key="df")
     return s3m_df
