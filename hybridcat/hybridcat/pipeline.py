@@ -1,6 +1,7 @@
-import transform_orbits
+import hybridcat.data as data
+import hybridcat.transform_orbits as transform_orbits
+# import hybridcat.merge_catalogues as merge
 import pandas as pd
-import data
 from astropy.time import Time
 from time import time
 
@@ -27,7 +28,8 @@ def preprocessing():
     print("Total Runtime: {:1.2f}s".format(time() - start))
 
 def main():
-    preprocessing()
+    print("hey there")
+    # preprocessing()
 
 
 if __name__ == "__main__":
