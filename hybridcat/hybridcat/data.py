@@ -2,8 +2,8 @@ import pandas as pd
 from os.path import isfile
 
 
-def create_mpcorb_from_json(in_path="../catalogues/mpcorb_extended.json",
-                            out_path="../catalogues/mpcorb_initial.h5", recreate=False, save=True):
+def create_mpcorb_from_json(in_path="catalogues/mpcorb_extended.json",
+                            out_path="catalogues/mpcorb_initial.h5", recreate=False, save=True):
     """Create mpcorb catalogue from the JSON that can be found
     here: https://minorplanetcenter.net/Extended_Files/mpcorb_extended.json.gz
 
@@ -48,7 +48,7 @@ def create_mpcorb_from_json(in_path="../catalogues/mpcorb_extended.json",
     return mpcorb_df
 
 
-def create_s3m_from_files(in_path="../catalogues/s3m_files/", out_path="../catalogues/s3m_initial.h5",
+def create_s3m_from_files(in_path="catalogues/s3m_files/", out_path="catalogues/s3m_initial.h5",
                           recreate=False, save=True):
     """Create S3m catalogue from the files in Grav+2011
 
