@@ -42,12 +42,12 @@ class HybridCreator():
             self.s3m.to_hdf(self.catalogue_folder + "s3m_propagated.h5", key="df", mode="w")
 
     def preprocessing(self):
-        if verbose:
+        if self.verbose:
             print("Started preprocessing")
 
         self.create_initial_catalogues()
         
-        if verbose:
+        if self.verbose:
             print("Catalogues created/read")
         
         self.mpcorb = transform_orbits.transform_catalogue(self.mpcorb, current_coords="KEP",
@@ -55,11 +55,11 @@ class HybridCreator():
         if self.save_all:
             self.mpcorb.to_hdf(self.catalogue_folder + "mpcorb_cometary.h5", key="df", mode="w")
 
-        if verbose:
+        if self.verbose:
             print("mpcorb coordinate conversion done")
         
         self.propagate_catalogues()
-        if verbose:
+        if self.verbose:
             print("Orbits propagated\nPreprocessing done")
 
 def merge_it():
