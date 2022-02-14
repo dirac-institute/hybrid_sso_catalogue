@@ -4,6 +4,7 @@ import hybridcat.merge as merge
 from astropy.time import Time
 import numpy as np
 import pandas as pd
+import argparse
 
 
 class HybridCreator():
@@ -16,9 +17,9 @@ class HybridCreator():
         Parameters
         ----------
         catalogue_folder : `str`, optional
-            Path to the folder containg catalogues, by default "catalogues/"
+            Path to the folder containing catalogues, by default "catalogues/"
         output_folder : `str`, optional
-            Path to where to place temporary output during merging, by default "output/"
+            Path to folder in which to place temporary output during merging, by default "output/"
         d_max : `float`, optional
             Maximum distance of a neighbour in AU, by default 0.1
         n_neighbours : `int`, optional
@@ -140,7 +141,52 @@ class HybridCreator():
 
 def merge_it():
     """ Quick function that does the whole merging process (using this as entry point) """
-    the_creator = HybridCreator()
+    parser = argparse.ArgumentParser(description='Merge MPCORB and S3m into a hybrid catalogue')
+    parser.add_argument('-c', '--catalogue_folder', default="catalogues/", type=str,
+                        help='Path to the folder containing catalogues, by default "catalogues/"')
+    parser.add_argument('-o', '--output_folder', default="output/", type=str,
+                        help='Path to folder in which to place temporary output during merging,\
+                              by default "output/"')
+    parser.add_argument('-d', '--max-distance', default=0.1, type=float,
+                        help='Maximum distance of a neighbour in AU, by default 0.1')
+    parser.add_argument('-n', '--neighbours', default=100, type=int,
+                        help='Number of neighbours to consider in the matching, by default 100')
+    parser.add_argument('-p', '--propagate-date', default="2022-03-01", type=str,
+                        help='Date to which you want to propagate the catalogues, by default "2022-03-01"')
+    parser.add_argument('-r', '--recreate-files', action="store_true",
+                        help='Whether to recreate files if they already exist, by default False')
+    parser.add_argument('-m', '--dynmodel', default="2", type=str,
+                        help='Which dynmodel to use (2-body or N-body), by default "2"')
+    parser.add_argument('-b', '--H-bins', default=list(range(-2, 28 + 1)), type=list,
+                        help='Magnitude bins to split the catalogues into during merge,\
+                              by default range(-2, 28 + 1)')
+    parser.add_argument('-w', '--workers', default=48, type=int,
+                        help='How many workers to use with dask whilst merging, by default 48')
+    parser.add_argument('-l', '--mem-limit', default="16GB", type=str,
+                        help='How much memory to assign each worker, by default "16GB"')
+    parser.add_argument('-t', '--timeout', default=300, type=int,
+                        help='Dask timeout, by default 300')
+    parser.add_argument('-s', '--save-all', action="store_true",
+                        help='Whether to save every dataframe at each preprocessing step, by default True')
+    parser.add_argument('-f', '--save-final', action="store_true",
+                        help='Whether to save the final dataframes after all preprocessing, by default True')
+    parser.add_argument('-v', '--verbose', action="store_true",
+                        help='Whether to print stuff about progress, by default False')
+
+    parser.set_defaults(save_all=True, save_final=True)
+
+    args = parser.parse_args()
+
+    the_creator = HybridCreator(catalogue_folder=args.catalogue_folder, output_folder=args.output_folder,
+                                d_max=args.max_distance, n_neighbours=args.neighbours,
+                                propagate_date=args.propagate_date, recreate=args.recreate_files,
+                                dynmodel=args.dynmodel, H_bins=args.H_bins, n_workers=args.workers,
+                                memory_limit=args.mem_limit, timeout=args.timeout, save_all=args.save_all,
+                                save_final=args.save_final, verbose=args.verbose)
     the_creator.preprocessing()
     the_creator.merge_catalogues()
     the_creator.save_hybrid()
+
+
+if __name__ == "__main__":
+    merge_it()
