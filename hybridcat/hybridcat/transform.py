@@ -1,6 +1,6 @@
 import numpy as np
-import pickle
-pickle.HIGHEST_PROTOCOL = 4
+# import pickle
+# pickle.HIGHEST_PROTOCOL = 4
 
 import pandas as pd
 import pyoorb as oo
