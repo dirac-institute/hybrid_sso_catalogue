@@ -29,8 +29,7 @@ def create_mpcorb_from_json(in_path="catalogues/mpcorb_extended.json",
         mpcorb_df = pd.read_json(in_path)
 
         # only select pertinent columns
-        mpcorb_df = mpcorb_df[["H", "G", "Principal_desig", "Epoch",
-                            "M", "Peri", "Node", "i", "e", "a"]]
+        mpcorb_df = mpcorb_df[["H", "G", "Principal_desig", "Epoch", "M", "Peri", "Node", "i", "e", "a"]]
 
         # adjust to column names from S3m
         mpcorb_df.rename(columns={"Principal_desig": "des", "Epoch": "t_0",
@@ -75,7 +74,7 @@ def create_s3m_from_files(in_path="catalogues/s3m_files/", out_path="catalogues/
 
         files_s3m = ['S0', 'S1_00', 'S1_01', 'S1_02', 'S1_03', 'S1_04', 'S1_05',
                     'S1_06', 'S1_07', 'S1_08', 'S1_09', 'S1_10', 'S1_11', 'S1_12',
-                    'S1_13', "SL", "St5", "ST"]
+                    'S1_13', "SL", "SS", "St5", "ST"]
 
         # create a dataframe for each file
         dfs = [pd.read_csv(in_path + "{}.s3m".format(files_s3m[i]), comment="!", delim_whitespace=True,
@@ -84,6 +83,12 @@ def create_s3m_from_files(in_path="catalogues/s3m_files/", out_path="catalogues/
 
         # stick them all together
         s3m_df = pd.concat(dfs)
+
+        # also add the centaurs (slightly different file format)
+        centaur_names = ['id', 'q', 'e', 'i', 'Omega', 'argperi', 't_p', 'H', 't_0']
+        s3m_df = s3m_df[centaur_names]
+        s3m_df = pd.concat([s3m_df, pd.read_csv(in_path + "centaurs.s3m", comment="!", delim_whitespace=True,
+                                                header=None, names=centaur_names, skiprows=1)])
 
         # make sure the indices are unique
         s3m_df.set_index("id", inplace=True)
