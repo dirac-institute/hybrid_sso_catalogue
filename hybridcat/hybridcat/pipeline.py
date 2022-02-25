@@ -97,9 +97,10 @@ class HybridCreator():
 
     def transform_both_to_cart(self):
         """Transform both propagated catalogues to cartesian coordinates"""
-        self.mpcorb = transform.transform_catalogue(self.mpcorb,
+        self.mpcorb = transform.transform_catalogue(self.mpcorb, initialise=False,
                                                     current_coords="COM", transformed_coords="CART")
-        self.s3m = transform.transform_catalogue(self.s3m, current_coords="COM", transformed_coords="CART")
+        self.s3m = transform.transform_catalogue(self.s3m, initialise=False,
+                                                 current_coords="COM", transformed_coords="CART")
         if self.save_all or self.save_final:
             self.mpcorb.to_hdf(self.catalogue_folder + "mpcorb_propagated_cart.h5", key="df", mode="w")
             self.s3m.to_hdf(self.catalogue_folder + "s3m_propagated_cart.h5", key="df", mode="w")
