@@ -115,7 +115,7 @@ def merge_catalogues(mpcorb, s3m, output_folder="output/", H_bins=np.arange(-2, 
     # prepare the run each magnitude bin
     output = []
     for left, right in zip(H_bins[:-1], H_bins[1:]):
-        output.append(merge_magnitude_bin(s3m=s3m_handle, mpcorb=mpcorb_handle, min_mag=left, max_mag=right,
+        output.append(merge_magnitude_bin(sim=s3m_handle, real=mpcorb_handle, min_mag=left, max_mag=right,
                                           k=k, d_max=d_max, output_folder=output_folder))
         
     # set them all running

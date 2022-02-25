@@ -186,6 +186,8 @@ def merge_it():
                         help='Whether to save the final dataframes after all preprocessing, by default True')
     parser.add_argument('-v', '--verbose', action="store_true",
                         help='Whether to print stuff about progress, by default False')
+    parser.add_argument('-S', "--skip-prep", action="store_true",
+                        help="Whether to skip the preprocessing, by default False")
 
     parser.set_defaults(save_all=True, save_final=True)
 
@@ -197,7 +199,11 @@ def merge_it():
                                 dynmodel=args.dynmodel, H_bins=args.H_bins, n_workers=args.workers,
                                 memory_limit=args.mem_limit, timeout=args.timeout, save_all=args.save_all,
                                 save_final=args.save_final, verbose=args.verbose)
-    the_creator.preprocessing()
+    if args.skip_prep:
+        the_creator.mpcorb = pd.read_hdf(the_creator.catalogue_folder + "mpcorb_propagated_cart.h5", key="df")
+        the_creator.s3m = pd.read_hdf(the_creator.catalogue_folder + "s3m_propagated_cart.h5", key="df")
+    else:
+        the_creator.preprocessing()
     the_creator.merge_catalogues()
     the_creator.save_hybrid()
 
