@@ -84,10 +84,10 @@ class HybridCreator():
     def propagate_catalogues(self):
         """ Propagate both catalogues to the same time """
         until_when = Time(self.propagate_date).mjd
+        # initialise=False so that openorb doesn't get mad
         self.mpcorb = transform.propagate_catalogues(self.mpcorb, until_when=until_when,
-                                                     dynmodel=self.dynmodel, initialise=True)
+                                                     dynmodel=self.dynmodel, initialise=False)
 
-        # initialise=False the second time so that openorb doesn't get mad
         self.s3m = transform.propagate_catalogues(self.s3m, until_when=until_when,
                                                   dynmodel=self.dynmodel, initialise=False)
 
