@@ -1,3 +1,4 @@
+import sys
 import hybridcat.data as data
 import hybridcat.transform as transform
 import hybridcat.merge as merge
@@ -12,7 +13,7 @@ class HybridCreator():
                  d_max=0.1, n_neighbours=100, propagate_date="2022-03-01", recreate=False,
                  dynmodel="2", H_bins=np.arange(-2, 28 + 1), n_workers=48, memory_limit="16GB", timeout=300,
                  save_all=True, save_final=True, verbose=False):
-        """HybridCreater masterClass used for creating a hybrid catalogue
+        """HybridCreator masterClass used for creating a hybrid catalogue
 
         Parameters
         ----------
@@ -138,6 +139,10 @@ class HybridCreator():
 
     def save_hybrid(self):
         """ Save the hybrid catalogue as a new h5 file """
+        # grab the cometary files instead
+        self.mpcorb = pd.read_hdf(self.catalogue_folder + "mpcorb_propagated.h5", key="df")
+        self.s3m = pd.read_hdf(self.catalogue_folder + "s3m_propagated.h5", key="df")
+
         # first work out which S3m objects we can delete
         delete_these = []
         for left, right in zip(self.H_bins[:-1], self.H_bins[1:]):
