@@ -2,7 +2,7 @@ from scipy.spatial import cKDTree
 import numpy as np
 import pandas as pd
 import dask
-from dask.distributed import Client
+from dask.distributed import Client, wait
 
 
 @dask.delayed
@@ -120,8 +120,9 @@ def merge_catalogues(mpcorb, s3m, output_folder="output/", H_bins=np.arange(-2, 
         
     # set them all running
     results = client.compute(output, timeout=timeout)
+    wait(results)
 
     # save the final result in 
-    np.save(output_folder + "all.npy", results)
+    # np.save(output_folder + "all.npy", results)
 
     return results
