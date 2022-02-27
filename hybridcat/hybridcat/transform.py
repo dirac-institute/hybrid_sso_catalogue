@@ -159,7 +159,7 @@ def transform_catalogue(df, current_coords, transformed_coords, initialise=True)
     transformed_df.drop(labels=["coords", "time_type"], axis=1)
 
     # add the designations back in
-    transformed_df["des"] = df.index.values
+    transformed_df.set_index(df.index.values, inplace=True)
 
     return transformed_df
 
@@ -215,7 +215,7 @@ def propagate_catalogues(df, until_when, coords="COM", dynmodel="2", initialise=
     propagated_df.drop(labels=["coords", "time_type"], axis=1)
 
     # add the designations back in
-    propagated_df["des"] = df.index.values
+    propagated_df.set_index(df.index.values, inplace=True)
 
     return propagated_df
 

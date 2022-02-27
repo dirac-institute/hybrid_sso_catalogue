@@ -1,7 +1,7 @@
 import sys
-import hybridcat.data as data
-import hybridcat.transform as transform
-import hybridcat.merge as merge
+from .data import *
+from .transform import *
+from .merge import *
 from astropy.time import Time
 import numpy as np
 import pandas as pd
@@ -63,18 +63,17 @@ class HybridCreator():
 
     def create_initial_catalogues(self):
         """ Create the initial catalogues or simply read them if they exist """
-        self.mpcorb = data.create_mpcorb_from_json(in_path=self.catalogue_folder + "mpcorb_extended.json",
-                                                   out_path=self.catalogue_folder + "mpcorb_initial.h5",
-                                                   recreate=self.recreate, save=self.save_all)
-
-        self.s3m = data.create_s3m_from_files(in_path=self.catalogue_folder + "/s3m_files/",
-                                              out_path=self.catalogue_folder + "s3m_initial.h5",
+        self.mpcorb = create_mpcorb_from_json(in_path=self.catalogue_folder + "mpcorb_extended.json",
+                                              out_path=self.catalogue_folder + "mpcorb_initial.h5",
                                               recreate=self.recreate, save=self.save_all)
+
+        self.s3m = create_s3m_from_files(in_path=self.catalogue_folder + "/s3m_files/",
+                                         out_path=self.catalogue_folder + "s3m_initial.h5",
+                                         recreate=self.recreate, save=self.save_all)
 
     def transform_mpcorb(self):
         """ Convert mpcorb to cometary coordinates to match S3m """
-        self.mpcorb = transform.transform_catalogue(self.mpcorb,
-                                                    current_coords="KEP", transformed_coords="COM")
+        self.mpcorb = transform_catalogue(self.mpcorb, current_coords="KEP", transformed_coords="COM")
         # convert back to degress for the angles
         self.mpcorb.i = np.rad2deg(self.mpcorb.i)
         self.mpcorb.argperi = np.rad2deg(self.mpcorb.argperi)
@@ -86,11 +85,11 @@ class HybridCreator():
         """ Propagate both catalogues to the same time """
         until_when = Time(self.propagate_date).mjd
         # initialise=False so that openorb doesn't get mad
-        self.mpcorb = transform.propagate_catalogues(self.mpcorb, until_when=until_when,
-                                                     dynmodel=self.dynmodel, initialise=False)
+        self.mpcorb = propagate_catalogues(self.mpcorb, until_when=until_when,
+                                           dynmodel=self.dynmodel, initialise=False)
 
-        self.s3m = transform.propagate_catalogues(self.s3m, until_when=until_when,
-                                                  dynmodel=self.dynmodel, initialise=False)
+        self.s3m = propagate_catalogues(self.s3m, until_when=until_when,
+                                        dynmodel=self.dynmodel, initialise=False)
 
         if self.save_all:
             self.mpcorb.to_hdf(self.catalogue_folder + "mpcorb_propagated.h5", key="df", mode="w")
@@ -98,10 +97,10 @@ class HybridCreator():
 
     def transform_both_to_cart(self):
         """Transform both propagated catalogues to cartesian coordinates"""
-        self.mpcorb = transform.transform_catalogue(self.mpcorb, initialise=False,
-                                                    current_coords="COM", transformed_coords="CART")
-        self.s3m = transform.transform_catalogue(self.s3m, initialise=False,
-                                                 current_coords="COM", transformed_coords="CART")
+        self.mpcorb = transform_catalogue(self.mpcorb, initialise=False,
+                                          current_coords="COM", transformed_coords="CART")
+        self.s3m = transform_catalogue(self.s3m, initialise=False,
+                                       current_coords="COM", transformed_coords="CART")
         if self.save_all or self.save_final:
             self.mpcorb.to_hdf(self.catalogue_folder + "mpcorb_propagated_cart.h5", key="df", mode="w")
             self.s3m.to_hdf(self.catalogue_folder + "s3m_propagated_cart.h5", key="df", mode="w")
@@ -131,9 +130,9 @@ class HybridCreator():
         """ Merge the two catalogues! (Output saved in self.output_folder) """
         if self.verbose:
             print("Starting the merge now")
-        merge.merge_catalogues(self.mpcorb, self.s3m, output_folder=self.output_folder, H_bins=self.H_bins,
-                               n_workers=self.n_workers, memory_limit=self.memory_limit, timeout=self.timeout,
-                               k=self.n_neighbours, d_max=self.d_max)
+        merge_catalogues(self.mpcorb, self.s3m, output_folder=self.output_folder, H_bins=self.H_bins,
+                         n_workers=self.n_workers, memory_limit=self.memory_limit, timeout=self.timeout,
+                         k=self.n_neighbours, d_max=self.d_max)
         if self.verbose:
             print("Done merging!")
 
@@ -150,7 +149,7 @@ class HybridCreator():
             delete_these.extend(matched)
 
         # delete them
-        remaining_s3m = self.s3m.drop(delete_these, axis=0)
+        remaining_s3m = self.s3m.drop(self.s3m.iloc[delete_these].index.values, axis=0)
 
         # add in the MPCORB objects (that have reasonable magnitudes)
         self.hybrid = pd.concat([remaining_s3m, self.mpcorb[self.mpcorb.H < 35]])
