@@ -74,7 +74,7 @@ def create_s3m_from_files(in_path="catalogues/s3m_files/", out_path="catalogues/
 
         files_s3m = ['S0', 'S1_00', 'S1_01', 'S1_02', 'S1_03', 'S1_04', 'S1_05',
                     'S1_06', 'S1_07', 'S1_08', 'S1_09', 'S1_10', 'S1_11', 'S1_12',
-                    'S1_13', "SL", "SS", "St5", "ST"]
+                    'S1_13', "SS", "St5", "ST"]
 
         # create a dataframe for each file
         dfs = [pd.read_csv(in_path + "{}.s3m".format(files_s3m[i]), comment="!", delim_whitespace=True,
