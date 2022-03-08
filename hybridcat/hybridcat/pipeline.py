@@ -60,6 +60,7 @@ class HybridCreator():
         self.save_all = save_all
         self.save_final = save_final
         self.verbose = verbose
+        self.init = True
 
     def create_initial_catalogues(self):
         """ Create the initial catalogues or simply read them if they exist """
@@ -71,37 +72,28 @@ class HybridCreator():
                                          out_path=self.catalogue_folder + "s3m_initial.h5",
                                          recreate=self.recreate, save=self.save_all)
 
-    def transform_mpcorb(self):
-        """ Convert mpcorb to cometary coordinates to match S3m """
-        self.mpcorb = transform_catalogue(self.mpcorb, current_coords="KEP", transformed_coords="COM")
-        # convert back to degress for the angles
-        self.mpcorb.i = np.rad2deg(self.mpcorb.i)
-        self.mpcorb.argperi = np.rad2deg(self.mpcorb.argperi)
-        self.mpcorb.Omega = np.rad2deg(self.mpcorb.Omega)
-        if self.save_all:
-            self.mpcorb.to_hdf(self.catalogue_folder + "mpcorb_cometary.h5", key="df", mode="w")
+    def transform_both_to_cart(self):
+        """Transform both catalogues to cartesian coordinates to avoid singularities"""
+        self.mpcorb = transform_catalogue(self.mpcorb, initialise=self.init,
+                                          current_coords="KEP", transformed_coords="CART")
+        self.init = False
+        self.s3m = transform_catalogue(self.s3m, initialise=self.init,
+                                       current_coords="COM", transformed_coords="CART")
+        if self.save_all or self.save_final:
+            self.mpcorb.to_hdf(self.catalogue_folder + "mpcorb_cart.h5", key="df", mode="w")
+            self.s3m.to_hdf(self.catalogue_folder + "s3m_cart.h5", key="df", mode="w")
 
     def propagate_catalogues(self):
         """ Propagate both catalogues to the same time """
         until_when = Time(self.propagate_date).mjd
         # initialise=False so that openorb doesn't get mad
-        self.mpcorb = propagate_catalogues(self.mpcorb, until_when=until_when,
-                                           dynmodel=self.dynmodel, initialise=False)
-
-        self.s3m = propagate_catalogues(self.s3m, until_when=until_when,
-                                        dynmodel=self.dynmodel, initialise=False)
+        self.mpcorb = propagate_catalogues(self.mpcorb, until_when=until_when, coords="CART",
+                                           dynmodel=self.dynmodel, initialise=self.init)
+        self.init = False
+        self.s3m = propagate_catalogues(self.s3m, until_when=until_when, coords="CART",
+                                        dynmodel=self.dynmodel, initialise=self.init)
 
         if self.save_all:
-            self.mpcorb.to_hdf(self.catalogue_folder + "mpcorb_propagated.h5", key="df", mode="w")
-            self.s3m.to_hdf(self.catalogue_folder + "s3m_propagated.h5", key="df", mode="w")
-
-    def transform_both_to_cart(self):
-        """Transform both propagated catalogues to cartesian coordinates"""
-        self.mpcorb = transform_catalogue(self.mpcorb, initialise=False,
-                                          current_coords="COM", transformed_coords="CART")
-        self.s3m = transform_catalogue(self.s3m, initialise=False,
-                                       current_coords="COM", transformed_coords="CART")
-        if self.save_all or self.save_final:
             self.mpcorb.to_hdf(self.catalogue_folder + "mpcorb_propagated_cart.h5", key="df", mode="w")
             self.s3m.to_hdf(self.catalogue_folder + "s3m_propagated_cart.h5", key="df", mode="w")
 
@@ -113,18 +105,14 @@ class HybridCreator():
         self.create_initial_catalogues()
         if self.verbose:
             print("Catalogues created/read")
-        
-        self.transform_mpcorb()
-        if self.verbose:
-            print("mpcorb coordinate conversion done")
-        
-        self.propagate_catalogues()
-        if self.verbose:
-            print("Orbits propagated")
 
         self.transform_both_to_cart()
         if self.verbose:
-            print("Both transforms to cartesian\nPreprocessing done")
+            print("Both transformed to cartesian")
+        
+        self.propagate_catalogues()
+        if self.verbose:
+            print("Orbits propagated\nPreprocessing done")
 
     def merge_catalogues(self):
         """ Merge the two catalogues! (Output saved in self.output_folder) """
@@ -136,11 +124,29 @@ class HybridCreator():
         if self.verbose:
             print("Done merging!")
 
+    def transform_both_to_cometary(self):
+        """ Convert both catalogues to cometary coordinates so hybrid matches S3m """
+        self.mpcorb = transform_catalogue(self.mpcorb, current_coords="CART", transformed_coords="COM",
+                                          initialise=self.init)
+        self.init = False
+        self.s3m = transform_catalogue(self.s3m, current_coords="CART", transformed_coords="COM",
+                                       initialise=self.init)
+        # convert back to degrees for the angles
+        self.mpcorb["i"] = np.rad2deg(self.mpcorb["i"])
+        self.mpcorb["argperi"] = np.rad2deg(self.mpcorb["argperi"])
+        self.mpcorb["Omega"] = np.rad2deg(self.mpcorb["Omega"])
+        self.s3m["i"] = np.rad2deg(self.s3m["i"])
+        self.s3m["argperi"] = np.rad2deg(self.s3m["argperi"])
+        self.s3m["Omega"] = np.rad2deg(self.s3m["Omega"])
+
+        if self.save_all:
+            self.mpcorb.to_hdf(self.catalogue_folder + "mpcorb_propagated_cometary.h5", key="df", mode="w")
+            self.s3m.to_hdf(self.catalogue_folder + "s3m_propagated_cometary.h5", key="df", mode="w")
+
     def save_hybrid(self):
         """ Save the hybrid catalogue as a new h5 file """
-        # grab the cometary files instead
-        self.mpcorb = pd.read_hdf(self.catalogue_folder + "mpcorb_propagated.h5", key="df")
-        self.s3m = pd.read_hdf(self.catalogue_folder + "s3m_propagated.h5", key="df")
+        # convert both catalogues to cometary coordinates
+        self.transform_both_to_cometary()
 
         # first work out which S3m objects we can delete
         delete_these = []

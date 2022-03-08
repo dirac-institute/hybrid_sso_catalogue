@@ -1,7 +1,4 @@
 import numpy as np
-# import pickle
-# pickle.HIGHEST_PROTOCOL = 4
-
 import pandas as pd
 import pyoorb as oo
 
@@ -164,7 +161,7 @@ def transform_catalogue(df, current_coords, transformed_coords, initialise=True)
     return transformed_df
 
 
-def propagate_catalogues(df, until_when, coords="COM", dynmodel="2", initialise=True):
+def propagate_catalogues(df, until_when, coords="CART", dynmodel="2", initialise=True):
     """Propagate a catalogue until a certain time
 
     Parameters
@@ -174,7 +171,7 @@ def propagate_catalogues(df, until_when, coords="COM", dynmodel="2", initialise=
     until_when : `float`
         Modified Julian date for when to evolve until
     coords : `str`, optional
-        Coordinate system (one of CART, COM, KEP), by default "COM"
+        Coordinate system (one of CART, COM, KEP), by default "CART"
     dynmodel : `str`, optional
         Which model to use (basically 2=fast, N=accurate), by default "2"
     initialise : `boolean`, optional
