@@ -33,11 +33,13 @@ def create_mpcorb_from_json(in_path="catalogues/mpcorb_extended.json",
 
         # adjust to column names from S3m
         mpcorb_df.rename(columns={"Principal_desig": "des", "Epoch": "t_0",
-                                "M": "mean_anom", "Peri": "argperi", "Node": "Omega"},
+                                  "M": "mean_anom", "Peri": "argperi", "Node": "Omega"},
                         inplace=True)
 
         # adjust to modified JD and save file
         mpcorb_df.t_0 = mpcorb_df.t_0 - 2400000.5
+
+        mpcorb_df.set_index("des", inplace=True)
 
         if save:
             mpcorb_df.to_hdf(out_path, mode="w", key="df")

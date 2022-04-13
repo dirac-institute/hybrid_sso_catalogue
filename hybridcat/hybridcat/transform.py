@@ -153,7 +153,7 @@ def transform_catalogue(df, current_coords, transformed_coords, initialise=True)
     transformed_df = pd.DataFrame(transformed_orbits, columns=columns_from_coords(transformed_coords))
 
     # drop the useless columns
-    transformed_df.drop(labels=["coords", "time_type"], axis=1)
+    transformed_df.drop(labels=["coords", "time_type"], axis=1, inplace=True)
 
     # add the designations back in
     transformed_df.set_index(df.index.values, inplace=True)
@@ -209,7 +209,7 @@ def propagate_catalogues(df, until_when, coords="CART", dynmodel="2", initialise
     propagated_df = pd.DataFrame(propagated_orbits, columns=columns_from_coords(coords))
 
     # drop the useless columns
-    propagated_df.drop(labels=["coords", "time_type"], axis=1)
+    propagated_df.drop(labels=["coords", "time_type"], axis=1, inplace=True)
 
     # add the designations back in
     propagated_df.set_index(df.index.values, inplace=True)

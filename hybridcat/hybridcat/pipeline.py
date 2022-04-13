@@ -67,18 +67,31 @@ class HybridCreator():
         self.mpcorb = create_mpcorb_from_json(in_path=self.catalogue_folder + "mpcorb_extended.json",
                                               out_path=self.catalogue_folder + "mpcorb_initial.h5",
                                               recreate=self.recreate, save=self.save_all)
+        if self.verbose:
+            print("\tMPCORB df created from JSON file")
 
         self.s3m = create_s3m_from_files(in_path=self.catalogue_folder + "/s3m_files/",
                                          out_path=self.catalogue_folder + "s3m_initial.h5",
                                          recreate=self.recreate, save=self.save_all)
+        
+        if self.verbose:
+            print("\tS3M df created from files")
 
     def transform_both_to_cart(self):
         """Transform both catalogues to cartesian coordinates to avoid singularities"""
         self.mpcorb = transform_catalogue(self.mpcorb, initialise=self.init,
                                           current_coords="KEP", transformed_coords="CART")
         self.init = False
+        
+        if self.verbose:
+            print("\tMPCORB transformed from KEP to CART")
+        
         self.s3m = transform_catalogue(self.s3m, initialise=self.init,
                                        current_coords="COM", transformed_coords="CART")
+        
+        if self.verbose:
+            print("\tS3M transformed from COM to CART")
+        
         if self.save_all or self.save_final:
             self.mpcorb.to_hdf(self.catalogue_folder + "mpcorb_cart.h5", key="df", mode="w")
             self.s3m.to_hdf(self.catalogue_folder + "s3m_cart.h5", key="df", mode="w")
@@ -90,8 +103,15 @@ class HybridCreator():
         self.mpcorb = propagate_catalogues(self.mpcorb, until_when=until_when, coords="CART",
                                            dynmodel=self.dynmodel, initialise=self.init)
         self.init = False
+        
+        if self.verbose:
+            print("\tMPCORB propagated until {}".format(self.propagate_date))
+        
         self.s3m = propagate_catalogues(self.s3m, until_when=until_when, coords="CART",
                                         dynmodel=self.dynmodel, initialise=self.init)
+        
+        if self.verbose:
+            print("\tS3M propagated until {}".format(self.propagate_date))
 
         if self.save_all:
             self.mpcorb.to_hdf(self.catalogue_folder + "mpcorb_propagated_cart.h5", key="df", mode="w")
@@ -129,8 +149,15 @@ class HybridCreator():
         self.mpcorb = transform_catalogue(self.mpcorb, current_coords="CART", transformed_coords="COM",
                                           initialise=self.init)
         self.init = False
+        
+        if self.verbose:
+            print("\tMPCORB transformed from CART to COM")
         self.s3m = transform_catalogue(self.s3m, current_coords="CART", transformed_coords="COM",
                                        initialise=self.init)
+        
+        if self.verbose:
+            print("\tS3m transformed from CART to COM")
+
         # convert back to degrees for the angles
         self.mpcorb["i"] = np.rad2deg(self.mpcorb["i"])
         self.mpcorb["argperi"] = np.rad2deg(self.mpcorb["argperi"])
@@ -145,20 +172,35 @@ class HybridCreator():
 
     def save_hybrid(self):
         """ Save the hybrid catalogue as a new h5 file """
+        if self.verbose:
+            print("Building hybrid catalogue")
+
         # convert both catalogues to cometary coordinates
         self.transform_both_to_cometary()
+
+        if self.verbose:
+            print("Both catalogues transformed back to cometary")
 
         # first work out which S3m objects we can delete
         delete_these = []
         for left, right in zip(self.H_bins[:-1], self.H_bins[1:]):
             matched = np.load(self.output_folder + "matched_{}_{}.npy".format(left, right))
             delete_these.extend(matched)
+            
+        if self.verbose:
+            print("Replacement IDs collected")
 
         # delete them
         remaining_s3m = self.s3m.drop(self.s3m.iloc[delete_these].index.values, axis=0)
 
+        if self.verbose:
+            print("IDs dropped from S3M")
+        
         # add in the MPCORB objects (that have reasonable magnitudes)
         self.hybrid = pd.concat([remaining_s3m, self.mpcorb[self.mpcorb.H < 35]])
+        
+        if self.verbose:
+            print("MPCORB injected into modified S3M")
 
         # save it and celebrate
         self.hybrid.to_hdf(self.catalogue_folder + "hybrid.h5", key="df", mode="w")

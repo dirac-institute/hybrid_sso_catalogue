@@ -136,3 +136,5 @@ dmypy.json
 catalogues/*
 *dask-worker-space/*
 *.csv
+*.dat
+*.obs
