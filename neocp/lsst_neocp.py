@@ -218,14 +218,12 @@ def create_digest2_input(in_path="/data/epyc/projects/jpl_survey_sim/10yrs/detec
             night += 1
             
             
-def create_bash_script(out_path="neo/", start_night=0, final_night=31):
+def create_bash_script(out_path="neo/", start_night=0, final_night=31, digest2_folder="/data/epyc/projects/hybrid-sso-catalogs/digest2/", cpu_count=32):
     bash = "for NIGHT in " + " ".join(["{:02d}".format(i) for i in range(start_night, final_night)]) + "\n"
     bash += "do\n"
 
     bash += 'echo "Now running night $NIGHT through digest2..."\n'
-    bash += "\t" + "time /data/epyc/projects/hybrid-sso-catalogs/digest2/digest2"
-    bash += " -p /data/epyc/projects/hybrid-sso-catalogs/digest2/"
-    bash += " -c /data/epyc/projects/hybrid-sso-catalogs/digest2/MPC.config --cpu 32"
+    bash += "\t" + f"time {digest2_folder}digest2 -p {digest2_folder} -c {digest2_folder}MPC.config --cpu {cpu_count}"
     bash += " {}night_$NIGHT.obs > {}night_$NIGHT.dat".format(out_path, out_path) + "\n"
     bash += "grep -a -v tracklet {}night_$NIGHT.dat > {}night_$NIGHT.filtered.dat \n".format(out_path, out_path)
 
@@ -239,9 +237,11 @@ def main():
     parser = argparse.ArgumentParser(description='Run digest2 on LSST mock observations')
     parser.add_argument('-i', '--in-path',
                         default="/data/epyc/projects/jpl_survey_sim/10yrs/detections/march_start_v2.1/S0/",
-                        type=str, help='Path to the folder containing mock observations"')
+                        type=str, help='Path to the folder containing mock observations')
     parser.add_argument('-o', '--out-path', default="neo/", type=str,
-                        help='Path to folder in which to place output"')
+                        help='Path to folder in which to place output')
+    parser.add_argument('-d', '--digest2-path', default="/data/epyc/projects/hybrid-sso-catalogs/digest2/",
+                        type=str, help='Path to digest2 folder')
     parser.add_argument('-z', '--night-zero', default=59638, type=int,
                         help='MJD value for the first night')
     parser.add_argument('-s', '--start-night', default=0, type=int,
@@ -254,6 +254,8 @@ def main():
                         help='Minimum arc length in arcseconds')
     parser.add_argument('-mt', '--max-time', default=90, type=int,
                         help='Maximum time between shortest pair of tracklets in night')
+    parser.add_argument('-c', '--cpu-count', default=32, type=int,
+                        help='How many CPUs to use for the digest2 calculations')
     parser.add_argument('-M', '--mba', action="store_true",
                         help="Replace in_path and out_path with defaults for MBAs")
     parser.add_argument('-t', '--timeit', action="store_true",
@@ -270,10 +272,8 @@ def main():
                          night_zero=args.night_zero, start_night=args.start_night, final_night=args.final_night,
                          min_obs=args.min_obs, min_arc=args.min_arc, max_time=args.max_time)
     
-    
-    
-    
-    script = create_bash_script(out_path=args.out_path, start_night=args.start_night, final_night=args.final_night)
+    script = create_bash_script(out_path=args.out_path, start_night=args.start_night, final_night=args.final_night,
+                                digest2_path=args.digest2_path, cpu_count=args.cpu_count)
     
     start = time.time()
     subprocess.call(script, shell=True)
