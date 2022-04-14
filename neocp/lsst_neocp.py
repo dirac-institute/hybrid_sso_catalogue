@@ -104,6 +104,28 @@ def filter_tracklets(df, min_obs=2, min_arc=1, max_time=90):
                                   df["FieldMJD"].diff().min() * 1440 < max_time))
 
 
+f2n = [[0, 1, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
+ [19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31],
+ [31, 35, 36, 37, 39, 40, 41, 42, 43, 44, 45, 46],
+ [46, 47, 49, 50, 52, 53, 54, 56, 57, 58, 59, 60, 61],
+ [61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72],
+ [72, 73, 74, 75, 76, 77, 78, 79, 82, 83, 85, 86, 87, 88, 89],
+ [89, 90, 91, 93, 94, 95, 98, 107, 108, 109, 110, 111, 112],
+ [112, 113, 114, 115, 118, 119, 121, 122, 124, 128, 129, 130, 131, 132],
+ [132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144],
+ [144, 145, 146, 147, 148, 149, 150, 151, 152, 154, 157, 159],
+ [159, 160, 161, 162, 163, 165, 166, 167, 168, 169, 170, 171],
+ [171, 172, 173, 174, 175, 178, 179, 180, 181, 182, 183, 184, 185],
+ [185, 186, 187, 188, 191, 192, 193, 196, 197, 198, 199, 200, 201, 202]]
+
+
+def find_first_file(night_range):
+    for night in night_range:
+        for i, f in enumerate(f2n):
+            if night in f:
+                return i
+
+
 def create_digest2_input(in_path="/data/epyc/projects/jpl_survey_sim/10yrs/detections/march_start_v2.1/S0/",
                          out_path="neo/", night_zero=59638, start_night=0, final_night=31, timeit=False,
                          min_obs=2, min_arc=1, max_time=90, s3m_path="../catalogues/s3m_initial.h5"):
@@ -120,13 +142,14 @@ def create_digest2_input(in_path="/data/epyc/projects/jpl_survey_sim/10yrs/detec
     if timeit:
         print_time_delta(start, time.time(), label="S3M Mapping Creation")
         start = time.time()
-    
-    night, file = start_night, 0
+        
+    night, file = start_night, find_first_file(range(start_night, final_night))
     files = sorted(listdir(in_path[0])) if isinstance(in_path, list) else sorted(listdir(in_path))
 
     # flags for whether to move on to the next file and whether to append or not
     next_file = True
     append = False
+    night_not_present = True
 
     # loop until all of the nights have been read in
     while night < final_night:
