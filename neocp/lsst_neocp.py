@@ -106,13 +106,13 @@ def filter_tracklets(df, min_obs=2, min_arc=1, max_time=90):
 
 def create_digest2_input(in_path="/data/epyc/projects/jpl_survey_sim/10yrs/detections/march_start_v2.1/S0/",
                          out_path="neo/", night_zero=59638, start_night=0, final_night=31, timeit=False,
-                         min_obs=2, min_arc=1, max_time=90):
+                         min_obs=2, min_arc=1, max_time=90, s3m_path="../catalogues/s3m_initial.h5"):
     
     if timeit:
         start = time.time()
     
     # convert all S3M IDs to hex so they fit
-    s3m = pd.read_hdf("../catalogues/s3m_initial.h5")
+    s3m = pd.read_hdf(s3m_path)
     hex_ids = np.array([f'{num:07X}' for num in np.arange(len(s3m.index.values))])
     s3m_to_hex7 = dict(zip(s3m.index.values, hex_ids))
     print("done creating S3M ID mapping")
@@ -242,6 +242,8 @@ def main():
                         help='Path to folder in which to place output')
     parser.add_argument('-d', '--digest2-path', default="/data/epyc/projects/hybrid-sso-catalogs/digest2/",
                         type=str, help='Path to digest2 folder')
+    parser.add_argument('-S', '--s3m-path', default="../catalogues/s3m_initial.h5",
+                        type=str, help='Path to S3m file')
     parser.add_argument('-z', '--night-zero', default=59638, type=int,
                         help='MJD value for the first night')
     parser.add_argument('-s', '--start-night', default=0, type=int,
@@ -276,7 +278,7 @@ def main():
 
     create_digest2_input(in_path=args.in_path, out_path=args.out_path, timeit=args.timeit,
                          night_zero=args.night_zero, start_night=args.start_night, final_night=args.final_night,
-                         min_obs=args.min_obs, min_arc=args.min_arc, max_time=args.max_time)
+                         min_obs=args.min_obs, min_arc=args.min_arc, max_time=args.max_time, s3m_path=args.s3m_path)
     
     script = create_bash_script(out_path=args.out_path, start_night=args.start_night, final_night=args.final_night,
                                 digest2_path=args.digest2_path, cpu_count=args.cpu_count)
