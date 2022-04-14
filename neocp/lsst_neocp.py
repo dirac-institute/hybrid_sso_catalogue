@@ -258,6 +258,8 @@ def main():
                         help='How many CPUs to use for the digest2 calculations')
     parser.add_argument('-M', '--mba', action="store_true",
                         help="Replace in_path and out_path with defaults for MBAs")
+    parser.add_argument('-Mh', '--mba-hyak', action="store_true",
+                        help="Replace in_path and out_path with defaults for MBAs whilst on Hyak")
     parser.add_argument('-t', '--timeit', action="store_true",
                         help="Whether to time the code and print it out")
     args = parser.parse_args()
@@ -265,6 +267,10 @@ def main():
     if args.mba:
         args.in_path = ["/data/epyc/projects/jpl_survey_sim/10yrs/detections/march_start_v2.1/S1_{:02d}/".format(i) for i in range(14)]
         args.out_path = "mba/"
+    
+    if args.mba_hyak:
+        args.in_path = [f'/gscratch/dirac/tomwagg/simulated_obs/S1_{i:02d}/' for i in range(14)]
+        args.out_path = "/gscratch/dirac/tomwagg/hybrid_sso_catalogue/neocp/mba"
         
     print("Starting digest2 run for", args.out_path)
 
