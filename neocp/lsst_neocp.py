@@ -4,6 +4,7 @@ from astropy.time import Time
 import astropy.units as u
 import numpy as np
 from os import listdir
+from os.path import isfile
 import subprocess
 import argparse
 import matplotlib.pyplot as plt
@@ -155,85 +156,85 @@ def create_digest2_input(in_path="/data/epyc/projects/jpl_survey_sim/10yrs/detec
     while night < final_night:
         # if reading the next file
         if next_file:
-            # convert hdf to pandas and trim the columns to only keep relevant ones
-            if isinstance(in_path, str):
-                df = pd.read_hdf(in_path + files[file])
-                df = df[columns_to_keep]
+            if isfile(out_path + f"filtered_visit_{file:03d}.h5"):
+                df = pd.read_hdf(out_path + f"filtered_visit_{file:03d}.h5", key="df")
             else:
-                dfs = [ for i in range(len(in_path))]
-                for i in range(len(in_path)):
-                    dfs[i] = pd.read_hdf(in_path[i] + files[file])
-                    dfs[i] = dfs[i][columns_to_keep]
-                df = pd.concat(dfs)
+                # convert hdf to pandas and trim the columns to only keep relevant ones
+                if isinstance(in_path, str):
+                    df = pd.read_hdf(in_path + files[file])
+                    df = df[columns_to_keep]
+                else:
+                    dfs = [None for i in range(len(in_path))]
+                    for i in range(len(in_path)):
+                        dfs[i] = pd.read_hdf(in_path[i] + files[file])
+                        dfs[i] = dfs[i][columns_to_keep]
+                    df = pd.concat(dfs)
 
-            # create night column relative to night_zero
-            df["night"] = (df["FieldMJD"] - 0.5).astype(int)
-            df["night"] -= night_zero
-            next_file = False
+                # create night column relative to night_zero
+                df["night"] = (df["FieldMJD"] - 0.5).astype(int)
+                df["night"] -= night_zero
+                next_file = False
+                
+                if timeit:
+                    print_time_delta(start, time.time(), label=f"Reading file {file}")
+                    start = time.time()
+
+                # create a mask based on min # of obs, min arc length, max time between shortest pair
+                mask = df.groupby("ObjID").apply(filter_tracklets, min_obs, min_arc, max_time)
+                df[df["ObjID"].isin(mask[mask].index)]
+
+                # sort by the object and then the time
+                df = df.sort_values(["ObjID", "FieldMJD"])
+                
+                # write the new file back out
+                df.to_hdf(out_path + f"filtered_visit_{file:03d}.h5", key="df")
             
             if timeit:
-                print_time_delta(start, time.time(), label=f"Reading file {file}")
+                print_time_delta(start, time.time(), label=f"Filtered file {file} done")
                 start = time.time()
 
-            # create a mask based on min # of obs, min arc length, max time between shortest pair
-            mask = df.groupby("ObjID").apply(filter_tracklets, min_obs, min_arc, max_time)
-            df[df["ObjID"].isin(mask[mask].index)]
+        if not isfile(out_path + "night_{:02d}.obs".format(night)):
+            # get only the rows on this night
+            nightly_obs = df[df["night"] == night]
 
-            # sort by the object and then the time
-            df = df.sort_values(["ObjID", "FieldMJD"])
-            
-            # write the new file back out
-            df.to_hdf(out_path + f"filtered_visit_{file:03d}.h5", key="df")
-            
-            if timeit:
-                print_time_delta(start, time.time(), label=f"Filtered file {file}")
-                start = time.time()
+            # convert RA and Dec to hourangles and MJD to regular dates
+            ra_degrees = Angle(nightly_obs["AstRA(deg)"], unit="deg").hms
+            dec_degrees = Angle(nightly_obs["AstDec(deg)"], unit="deg").hms
+            datetimes = Time(nightly_obs["FieldMJD"], format="mjd").datetime
 
-        # get only the rows on this night
-        nightly_obs = df[df["night"] == night]
+            # match to 80 column format: https://www.minorplanetcenter.net/iau/info/OpticalObs.html
+            # each line stars with 5 spaces
+            lines = [" " * 5 for i in range(len(nightly_obs))]
+            for i in range(len(nightly_obs)):
+                # squish the ID into the available space (TODO: this may be problematic)
+                lines[i] += s3m_to_hex7[nightly_obs.iloc[i]["ObjID"]]
+                
+                # add two spaces and a C (the C is important for some reason)
+                lines[i] += " " * 2 + "C"
 
-        # convert RA and Dec to hourangles and MJD to regular dates
-        ra_degrees = Angle(nightly_obs["AstRA(deg)"], unit="deg").hms
-        dec_degrees = Angle(nightly_obs["AstDec(deg)"], unit="deg").hms
-        datetimes = Time(nightly_obs["FieldMJD"], format="mjd").datetime
-        
-        if timeit:
-            print_time_delta(start, time.time(), label=f"Filter data for night {night}")
-            start = time.time()
+                # convert time to HH MM DD.ddddd format
+                t = datetimes[i]
+                lines[i] += "{:4.0f} {:02.0f} {:08.5f} ".format(t.year, t.month, t.day + nightly_obs.iloc[i]["FieldMJD"] % 1.0)
+                
+                # convert RA to HH MM SS.ddd
+                lines[i] += "{:02.0f} {:02.0f} {:06.3f}".format(ra_degrees.h[i], ra_degrees.m[i], ra_degrees.s[i])
+                
+                # convert Dec to sHH MM SS.dd
+                lines[i] += "{:+03.0f} {:02.0f} {:05.2f}".format(dec_degrees.h[i], abs(dec_degrees.m[i]), abs(dec_degrees.s[i]))
 
-        # match to 80 column format: https://www.minorplanetcenter.net/iau/info/OpticalObs.html
-        # each line stars with 5 spaces
-        lines = [" " * 5 for i in range(len(nightly_obs))]
-        for i in range(len(nightly_obs)):
-            # squish the ID into the available space (TODO: this may be problematic)
-            lines[i] += s3m_to_hex7[nightly_obs.iloc[i]["ObjID"]]
-            
-            # add two spaces and a C (the C is important for some reason)
-            lines[i] += " " * 2 + "C"
+                # leave some blank columns
+                lines[i] += " " * 9
 
-            # convert time to HH MM DD.ddddd format
-            t = datetimes[i]
-            lines[i] += "{:4.0f} {:02.0f} {:08.5f} ".format(t.year, t.month, t.day + nightly_obs.iloc[i]["FieldMJD"] % 1.0)
-            
-            # convert RA to HH MM SS.ddd
-            lines[i] += "{:02.0f} {:02.0f} {:06.3f}".format(ra_degrees.h[i], ra_degrees.m[i], ra_degrees.s[i])
-            
-            # convert Dec to sHH MM SS.dd
-            lines[i] += "{:+03.0f} {:02.0f} {:05.2f}".format(dec_degrees.h[i], abs(dec_degrees.m[i]), abs(dec_degrees.s[i]))
+                # add the magnitude and filter (right aligned)
+                lines[i] += "{:04.1f}  {}".format(nightly_obs.iloc[i]["MaginFilter"], nightly_obs.iloc[i]["filter"])
 
-            # leave some blank columns
-            lines[i] += " " * 9
+                # add some more spaces and an observatory code
+                lines[i] += " " * 5 + "I11" + "\n"
 
-            # add the magntiude and filter (right aligned)
-            lines[i] += "{:04.1f}  {}".format(nightly_obs.iloc[i]["MaginFilter"], nightly_obs.iloc[i]["filter"])
-
-            # add some more spaces and an observatory code
-            lines[i] += " " * 5 + "I11" + "\n"
-
-        # write that to a file
-        with open(out_path + "night_{:02d}.obs".format(night), "a" if append else "w") as obs_file:
-            obs_file.writelines(lines)
-        append = False
+            # write that to a file
+            with open(out_path + "night_{:02d}.obs".format(night), "a" if append else "w") as obs_file:
+                obs_file.writelines(lines)
+            append = False
         
         if timeit:
             print_time_delta(start, time.time(), label=f"Writing observations for night {night}")
