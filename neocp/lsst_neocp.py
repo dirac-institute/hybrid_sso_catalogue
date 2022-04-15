@@ -145,21 +145,25 @@ def create_digest2_input(in_path="/data/epyc/projects/jpl_survey_sim/10yrs/detec
         
     night, file = start_night, find_first_file(range(start_night, final_night))
     files = sorted(listdir(in_path[0])) if isinstance(in_path, list) else sorted(listdir(in_path))
+    columns_to_keep = ["ObjID", "FieldMJD", "AstRA(deg)", "AstDec(deg)", "filter", "MaginFilter"]
 
     # flags for whether to move on to the next file and whether to append or not
     next_file = True
     append = False
-    night_not_present = True
 
     # loop until all of the nights have been read in
     while night < final_night:
         # if reading the next file
         if next_file:
-            # convert hdf to pandas
+            # convert hdf to pandas and trim the columns to only keep relevant ones
             if isinstance(in_path, str):
                 df = pd.read_hdf(in_path + files[file])
+                df = df[columns_to_keep]
             else:
-                dfs = [pd.read_hdf(in_path[i] + files[file]) for i in range(len(in_path))]
+                dfs = [ for i in range(len(in_path))]
+                for i in range(len(in_path)):
+                    dfs[i] = pd.read_hdf(in_path[i] + files[file])
+                    dfs[i] = dfs[i][columns_to_keep]
                 df = pd.concat(dfs)
 
             # create night column relative to night_zero
@@ -171,15 +175,22 @@ def create_digest2_input(in_path="/data/epyc/projects/jpl_survey_sim/10yrs/detec
                 print_time_delta(start, time.time(), label=f"Reading file {file}")
                 start = time.time()
 
+            # create a mask based on min # of obs, min arc length, max time between shortest pair
+            mask = df.groupby("ObjID").apply(filter_tracklets, min_obs, min_arc, max_time)
+            df[df["ObjID"].isin(mask[mask].index)]
+
+            # sort by the object and then the time
+            df = df.sort_values(["ObjID", "FieldMJD"])
+            
+            # write the new file back out
+            df.to_hdf(out_path + f"filtered_visit_{file:03d}.h5", key="df")
+            
+            if timeit:
+                print_time_delta(start, time.time(), label=f"Filtered file {file}")
+                start = time.time()
+
         # get only the rows on this night
         nightly_obs = df[df["night"] == night]
-
-        # create a mask based on min # of obs, min arc length, max time between shortest pair
-        mask = nightly_obs.groupby("ObjID").apply(filter_tracklets, min_obs, min_arc, max_time)
-        nightly_obs[nightly_obs["ObjID"].isin(mask[mask].index)]
-
-        # sort by the object and then the time
-        nightly_obs = nightly_obs.sort_values(["ObjID", "FieldMJD"])
 
         # convert RA and Dec to hourangles and MJD to regular dates
         ra_degrees = Angle(nightly_obs["AstRA(deg)"], unit="deg").hms
