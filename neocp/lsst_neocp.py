@@ -258,6 +258,8 @@ def create_digest2_input(in_path="/data/epyc/projects/jpl_survey_sim/10yrs/detec
             append = True
         # if the file is still going then move to the next night
         else:
+            if nightly_obs is None:
+                nightly_obs = df[df["night"] == night]
             print(str(len(nightly_obs)) + " observations in night " + str(night))
             night += 1
 
