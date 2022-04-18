@@ -155,7 +155,8 @@ def create_digest2_input(in_path="/data/epyc/projects/jpl_survey_sim/10yrs/detec
 
     night, file = start_night, find_first_file(range(start_night, final_night))
     files = sorted(listdir(in_path[0])) if isinstance(in_path, list) else sorted(listdir(in_path))
-    columns_to_keep = ["ObjID", "FieldMJD", "AstRA(deg)", "AstDec(deg)", "filter", "MaginFilter", ]
+    columns_to_keep = ["ObjID", "FieldMJD", "AstRA(deg)", "AstDec(deg)", "filter",
+                       "MaginFilter", "AstrometricSigma(mas)", "PhotometricSigma(mag)"]
 
     # flags for whether to move on to the next file and whether to append or not
     next_file = True
