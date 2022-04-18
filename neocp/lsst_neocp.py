@@ -5,11 +5,12 @@ import astropy.units as u
 import numpy as np
 from os import listdir
 from os.path import isfile
-import subprocess
 import argparse
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
 import time
+from multiprocessing import Pool
+from itertools import repeat
 
 
 """ --- Analysis functions --- """
@@ -96,6 +97,12 @@ def print_time_delta(start, end, label):
 """ --- digest2 prep functions --- """
 
 
+def filter_observations(df, min_obs=2, min_arc=1, max_time=90):
+    # create a mask based on min # of obs, min arc length, max time between shortest pair
+    mask = df.groupby("ObjID").apply(filter_tracklets, min_obs, min_arc, max_time)
+    df = df[df["ObjID"].isin(mask[mask].index)]
+    return df
+
 def filter_tracklets(df, min_obs=2, min_arc=1, max_time=90):
     init = SkyCoord(ra=df["AstRA(deg)"].iloc[0], dec=df["AstDec(deg)"].iloc[0], unit="deg")
     final = SkyCoord(ra=df["AstRA(deg)"].iloc[-1], dec=df["AstDec(deg)"].iloc[-1], unit="deg")
@@ -129,7 +136,8 @@ def find_first_file(night_range):
 
 def create_digest2_input(in_path="/data/epyc/projects/jpl_survey_sim/10yrs/detections/march_start_v2.1/S0/",
                          out_path="neo/", night_zero=59638, start_night=0, final_night=31, timeit=False,
-                         min_obs=2, min_arc=1, max_time=90, s3m_path="../catalogues/s3m_initial.h5"):
+                         min_obs=2, min_arc=1, max_time=90, s3m_path="../catalogues/s3m_initial.h5",
+                         n_cores=28):
 
     print(f"Doing digest2 stuff for nights {start_night} to {final_night}")
 
@@ -147,7 +155,7 @@ def create_digest2_input(in_path="/data/epyc/projects/jpl_survey_sim/10yrs/detec
 
     night, file = start_night, find_first_file(range(start_night, final_night))
     files = sorted(listdir(in_path[0])) if isinstance(in_path, list) else sorted(listdir(in_path))
-    columns_to_keep = ["ObjID", "FieldMJD", "AstRA(deg)", "AstDec(deg)", "filter", "MaginFilter"]
+    columns_to_keep = ["ObjID", "FieldMJD", "AstRA(deg)", "AstDec(deg)", "filter", "MaginFilter", ]
 
     # flags for whether to move on to the next file and whether to append or not
     next_file = True
@@ -181,9 +189,18 @@ def create_digest2_input(in_path="/data/epyc/projects/jpl_survey_sim/10yrs/detec
                     print_time_delta(start, time.time(), label=f"Reading file {file}")
                     start = time.time()
 
-                # create a mask based on min # of obs, min arc length, max time between shortest pair
-                mask = df.groupby("ObjID").apply(filter_tracklets, min_obs, min_arc, max_time)
-                df[df["ObjID"].isin(mask[mask].index)]
+                # if more than one core is available then split the dataframe up and parallelise
+                if n_cores > 1:
+                    df_split = np.array_split(df, n_cores)
+                    pool = Pool(n_cores)
+                    df = pd.concat(pool.starmap(filter_observations, zip(df_split,
+                                                                         repeat(min_obs, len(df_split)),
+                                                                         repeat(min_arc, len(df_split)),
+                                                                         repeat(max_time, len(df_split)))))
+                    pool.close()
+                    pool.join()
+                else:
+                    df = filter_observations(df, min_obs=min_obs, min_arc=min_arc, max_time=max_time)
 
                 # sort by the object and then the time
                 df = df.sort_values(["ObjID", "FieldMJD"])
@@ -290,8 +307,6 @@ def main():
                         type=str, help='Path to the folder containing mock observations')
     parser.add_argument('-o', '--out-path', default="neo/", type=str,
                         help='Path to folder in which to place output')
-    parser.add_argument('-d', '--digest2-path', default="/data/epyc/projects/hybrid-sso-catalogs/digest2/",
-                        type=str, help='Path to digest2 folder')
     parser.add_argument('-S', '--s3m-path', default="../catalogues/s3m_initial.h5",
                         type=str, help='Path to S3m file')
     parser.add_argument('-z', '--night-zero', default=59638, type=int,
@@ -324,20 +339,12 @@ def main():
         args.in_path = [f'/gscratch/dirac/tomwagg/simulated_obs/S1_{i:02d}/' for i in range(14)]
         args.out_path = "/gscratch/dirac/tomwagg/hybrid_sso_catalogue/neocp/mba/"
 
-    print("Starting digest2 run for", args.out_path)
+    print(f"Creating digest2 files for nights {args.start_night} to {args.final_night} in {args.out_path}")
 
     create_digest2_input(in_path=args.in_path, out_path=args.out_path, timeit=args.timeit,
                          night_zero=args.night_zero, start_night=args.start_night,
                          final_night=args.final_night, min_obs=args.min_obs, min_arc=args.min_arc,
-                         max_time=args.max_time, s3m_path=args.s3m_path)
-
-    script = create_bash_script(out_path=args.out_path, start_night=args.start_night,
-                                final_night=args.final_night, digest2_path=args.digest2_path,
-                                cpu_count=args.cpu_count)
-
-    start = time.time()
-    subprocess.call(script, shell=True)
-    print_time_delta(start, time.time(), "total digest2 run")
+                         max_time=args.max_time, s3m_path=args.s3m_path, n_cores=args.cpu_count)
     print("Hurrah!")
 
 
