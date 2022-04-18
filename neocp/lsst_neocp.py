@@ -158,6 +158,7 @@ def create_digest2_input(in_path="/data/epyc/projects/jpl_survey_sim/10yrs/detec
         if next_file:
             if isfile(out_path + f"filtered_visit_{file:03d}.h5"):
                 df = pd.read_hdf(out_path + f"filtered_visit_{file:03d}.h5", key="df")
+                next_file = False
             else:
                 # convert hdf to pandas and trim the columns to only keep relevant ones
                 if isinstance(in_path, str):
@@ -186,8 +187,16 @@ def create_digest2_input(in_path="/data/epyc/projects/jpl_survey_sim/10yrs/detec
                 # sort by the object and then the time
                 df = df.sort_values(["ObjID", "FieldMJD"])
 
+                if timeit:
+                    print_time_delta(start, time.time(), label=f"Masked file {file}")
+                    start = time.time()
+
                 # write the new file back out
                 df.to_hdf(out_path + f"filtered_visit_{file:03d}.h5", key="df")
+
+                if timeit:
+                    print_time_delta(start, time.time(), label=f"Wrote file {file}")
+                    start = time.time()
 
             if timeit:
                 print_time_delta(start, time.time(), label=f"Filtered file {file} done")
