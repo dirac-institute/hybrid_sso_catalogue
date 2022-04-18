@@ -131,6 +131,8 @@ def create_digest2_input(in_path="/data/epyc/projects/jpl_survey_sim/10yrs/detec
                          out_path="neo/", night_zero=59638, start_night=0, final_night=31, timeit=False,
                          min_obs=2, min_arc=1, max_time=90, s3m_path="../catalogues/s3m_initial.h5"):
 
+    print(f"Doing digest2 stuff for nights {start_night} to {final_night}")
+
     if timeit:
         start = time.time()
 
@@ -138,7 +140,6 @@ def create_digest2_input(in_path="/data/epyc/projects/jpl_survey_sim/10yrs/detec
     s3m = pd.read_hdf(s3m_path)
     hex_ids = np.array([f'{num:07X}' for num in np.arange(len(s3m.index.values))])
     s3m_to_hex7 = dict(zip(s3m.index.values, hex_ids))
-    print("done creating S3M ID mapping")
 
     if timeit:
         print_time_delta(start, time.time(), label="S3M Mapping Creation")
@@ -202,7 +203,7 @@ def create_digest2_input(in_path="/data/epyc/projects/jpl_survey_sim/10yrs/detec
                 print_time_delta(start, time.time(), label=f"Filtered file {file} done")
                 start = time.time()
 
-        if not isfile(out_path + "night_{:02d}.obs".format(night)):
+        if not isfile(out_path + "night_{:03d}.obs".format(night)) or append:
             # get only the rows on this night
             nightly_obs = df[df["night"] == night]
 
@@ -241,9 +242,11 @@ def create_digest2_input(in_path="/data/epyc/projects/jpl_survey_sim/10yrs/detec
                 lines[i] += " " * 5 + "I11" + "\n"
 
             # write that to a file
-            with open(out_path + "night_{:02d}.obs".format(night), "a" if append else "w") as obs_file:
+            with open(out_path + "night_{:03d}.obs".format(night), "a" if append else "w") as obs_file:
                 obs_file.writelines(lines)
             append = False
+        else:
+            print(f"skipping obs creation for night {night} because it already exists")
 
         if timeit:
             print_time_delta(start, time.time(), label=f"Writing observations for night {night}")
@@ -266,7 +269,7 @@ def create_digest2_input(in_path="/data/epyc/projects/jpl_survey_sim/10yrs/detec
 
 def create_bash_script(out_path="neo/", start_night=0, final_night=31,
                        digest2_path="/data/epyc/projects/hybrid-sso-catalogs/digest2/", cpu_count=32):
-    bash = "for NIGHT in " + " ".join(["{:02d}".format(i) for i in range(start_night, final_night)]) + "\n"
+    bash = "for NIGHT in " + " ".join(["{:03d}".format(i) for i in range(start_night, final_night)]) + "\n"
     bash += "do\n"
 
     bash += 'echo "Now running night $NIGHT through digest2..."\n\t'
