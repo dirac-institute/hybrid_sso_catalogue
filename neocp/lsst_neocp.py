@@ -308,7 +308,7 @@ def main():
 
     if args.mba_hyak:
         args.in_path = [f'/gscratch/dirac/tomwagg/simulated_obs/S1_{i:02d}/' for i in range(14)]
-        args.out_path = "/gscratch/dirac/tomwagg/hybrid_sso_catalogue/neocp/mba"
+        args.out_path = "/gscratch/dirac/tomwagg/hybrid_sso_catalogue/neocp/mba/"
 
     print("Starting digest2 run for", args.out_path)
 
