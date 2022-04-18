@@ -253,12 +253,12 @@ def create_digest2_input(in_path="/data/epyc/projects/jpl_survey_sim/10yrs/detec
             night += 1
             
             
-def create_bash_script(out_path="neo/", start_night=0, final_night=31, digest2_folder="/data/epyc/projects/hybrid-sso-catalogs/digest2/", cpu_count=32):
+def create_bash_script(out_path="neo/", start_night=0, final_night=31, digest2_path="/data/epyc/projects/hybrid-sso-catalogs/digest2/", cpu_count=32):
     bash = "for NIGHT in " + " ".join(["{:02d}".format(i) for i in range(start_night, final_night)]) + "\n"
     bash += "do\n"
 
     bash += 'echo "Now running night $NIGHT through digest2..."\n'
-    bash += "\t" + f"time {digest2_folder}digest2 -p {digest2_folder} -c {digest2_folder}MPC.config --cpu {cpu_count}"
+    bash += "\t" + f"time {digest2_path}digest2 -p {digest2_path} -c {digest2_path}MPC.config --cpu {cpu_count}"
     bash += " {}night_$NIGHT.obs > {}night_$NIGHT.dat".format(out_path, out_path) + "\n"
     bash += "grep -a -v tracklet {}night_$NIGHT.dat > {}night_$NIGHT.filtered.dat \n".format(out_path, out_path)
 
