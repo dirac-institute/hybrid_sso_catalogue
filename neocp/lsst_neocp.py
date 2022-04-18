@@ -11,6 +11,7 @@ from matplotlib.patches import Patch
 import time
 from multiprocessing import Pool
 from itertools import repeat
+import subprocess
 
 
 """ --- Analysis functions --- """
@@ -287,15 +288,22 @@ def create_digest2_input(in_path="/data/epyc/projects/jpl_survey_sim/10yrs/detec
 
 def create_bash_script(out_path="neo/", start_night=0, final_night=31,
                        digest2_path="/data/epyc/projects/hybrid-sso-catalogs/digest2/", cpu_count=32):
-    bash = "for NIGHT in " + " ".join(["{:03d}".format(i) for i in range(start_night, final_night)]) + "\n"
-    bash += "do\n"
+    bash = ""
+    loop_it = final_night > start_night + 1
 
-    bash += 'echo "Now running night $NIGHT through digest2..."\n\t'
+    if loop_it:
+        bash += "for NIGHT in " + " ".join([f"{i:03d}" for i in range(start_night, final_night)]) + "\n"
+        bash += "do\n"
+    else:
+        bash += f"NIGHT={start_night:03d}\n"
+
+    bash += 'echo "Now running night $NIGHT through digest2..."\n' + '\t' if loop_it else ''
     bash += f"time {digest2_path}digest2 -p {digest2_path} -c {digest2_path}MPC.config --cpu {cpu_count}"
     bash += f" {out_path}night_$NIGHT.obs > {out_path}night_$NIGHT.dat" + "\n"
     bash += f"grep -a -v tracklet {out_path}night_$NIGHT.dat > {out_path}night_$NIGHT.filtered.dat \n"
 
-    bash += "done\n"
+    if loop_it:
+        bash += "done\n"
 
     return bash
 
@@ -310,6 +318,8 @@ def main():
                         help='Path to folder in which to place output')
     parser.add_argument('-S', '--s3m-path', default="../catalogues/s3m_initial.h5",
                         type=str, help='Path to S3m file')
+    parser.add_argument('-d', '--digest2-path', default="/data/epyc/projects/hybrid-sso-catalogs/digest2/",
+                        type=str, help='Path to digest2 folder')
     parser.add_argument('-z', '--night-zero', default=59638, type=int,
                         help='MJD value for the first night')
     parser.add_argument('-s', '--start-night', default=0, type=int,
@@ -346,6 +356,13 @@ def main():
                          night_zero=args.night_zero, start_night=args.start_night,
                          final_night=args.final_night, min_obs=args.min_obs, min_arc=args.min_arc,
                          max_time=args.max_time, s3m_path=args.s3m_path, n_cores=args.cpu_count)
+
+    script = create_bash_script(out_path=args.out_path, start_night=args.start_night,
+                                final_night=args.final_night, digest2_path=args.digest2_path,
+                                cpu_count=args.cpu_count)
+    start = time.time()
+    subprocess.call(script, shell=True)
+    print_time_delta(start, time.time(), "total digest2 run")
     print("Hurrah!")
 
 
