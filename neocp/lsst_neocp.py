@@ -167,6 +167,7 @@ def create_digest2_input(in_path="/data/epyc/projects/jpl_survey_sim/10yrs/detec
     # flags for whether to move on to the next file and whether to append or not
     next_file = True
     append = False
+    nightly_obs = None
 
     # loop until all of the nights have been read in
     while night < final_night:
