@@ -208,7 +208,7 @@ def create_digest2_input(in_path="/data/epyc/projects/jpl_survey_sim/10yrs/detec
                 next_file = False
 
                 if timeit:
-                    print_time_delta(start, time.time(), label=f"Reading file {file}")
+                    print_time_delta(start, time.time(), label=f"Already exists! Reading file {file}")
                     start = time.time()
             else:
                 # convert hdf to pandas and trim the columns to only keep relevant ones
@@ -251,7 +251,7 @@ def create_digest2_input(in_path="/data/epyc/projects/jpl_survey_sim/10yrs/detec
                     df = filter_observations(df, min_obs=min_obs, min_arc=min_arc, max_time=max_time)
 
                 if timeit:
-                    print_time_delta(start, time.time(), label=f"Filtered nightly observations {night}")
+                    print_time_delta(start, time.time(), label=f"Filtered visit file {file}")
                     start = time.time()
 
                 # write the new file back out
