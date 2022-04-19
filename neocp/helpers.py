@@ -3,6 +3,7 @@ from matplotlib.patches import Patch
 import numpy as np
 import pandas as pd
 from os import listdir
+from os.path import isfile
 
 plt.rc('font', family='serif')
 plt.rcParams['text.usetex'] = False
@@ -53,11 +54,12 @@ def plot_neo_scores(neo_scores, density=False, bins=np.linspace(0, 100, 30), nig
 
 def get_specific_neo_score(path, file_name):
     if file_name.endswith(".filtered.dat"):
-        with open(path + file_name, "r") as f:
-            ignore_me = f.readline().rstrip() == ""
-        if not ignore_me:
-            df = pd.read_fwf(path + file_name)
-            return df["NEO"].values, df["Desig."].values
+        if isfile(file_name):
+            with open(path + file_name, "r") as f:
+                ignore_me = f.readline().rstrip() == ""
+            if not ignore_me:
+                df = pd.read_fwf(path + file_name)
+                return df["NEO"].values, df["Desig."].values
 
     return None, None
 
