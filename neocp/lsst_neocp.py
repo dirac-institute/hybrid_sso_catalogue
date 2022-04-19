@@ -151,8 +151,13 @@ def split_observations(obs, n_cores=28):
 
 def filter_observations(df, min_obs=2, min_arc=1, max_time=90):
     # create a mask based on min # of obs, min arc length, max time between shortest pair
-    mask = df.groupby("ObjID").apply(filter_tracklets, min_obs, min_arc, max_time)
-    df = df[df["ObjID"].isin(mask[mask].index)]
+    mask = df.groupby(["ObjID", "night"]).apply(filter_tracklets, min_obs, min_arc, max_time)
+
+    # re-index to match the mask
+    df_multiindex = df.set_index(["ObjID", "night"]).sort_index()
+
+    # get matching items from the original df and then reset the index to what it was
+    df = df_multiindex.loc[mask[mask].index].reset_index()
     return df
 
 
