@@ -97,23 +97,6 @@ def print_time_delta(start, end, label):
 
 """ --- digest2 prep functions --- """
 
-
-def filter_observations(df, min_obs=2, min_arc=1, max_time=90):
-    # create a mask based on min # of obs, min arc length, max time between shortest pair
-    mask = df.groupby("ObjID").apply(filter_tracklets, min_obs, min_arc, max_time)
-    df = df[df["ObjID"].isin(mask[mask].index)]
-    return df
-
-
-def filter_tracklets(df, min_obs=2, min_arc=1, max_time=90):
-    init = SkyCoord(ra=df["AstRA(deg)"].iloc[0], dec=df["AstDec(deg)"].iloc[0], unit="deg")
-    final = SkyCoord(ra=df["AstRA(deg)"].iloc[-1], dec=df["AstDec(deg)"].iloc[-1], unit="deg")
-
-    return np.logical_and.reduce((len(df) >= min_obs,
-                                  init.separation(final).to(u.arcsecond).value > min_arc,
-                                  df["FieldMJD"].diff().min() * 1440 < max_time))
-
-
 f2n = [[0, 1, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
        [19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31],
        [31, 35, 36, 37, 39, 40, 41, 42, 43, 44, 45, 46],
@@ -134,6 +117,52 @@ def find_first_file(night_range):
         for i, f in enumerate(f2n):
             if night in f:
                 return i
+
+
+def split_observations(obs, n_cores=28):
+    """Split observations over many cores but keep groups of tracklets together so that they get masked
+    correctly!
+
+    Parameters
+    ----------
+    obs : `pandas.DataFrame`
+        Observation table
+    n_cores : `int`, optional
+        Number of cores to split over, by default 28
+
+    Returns
+    -------
+    split_obs : `list`
+        List of dataframes with length `n_cores` and each with size approximately `len(obs) / n_cores`
+    """
+    indices = np.array([None for _ in range(n_cores - 1)])
+    i, cursor, dx = 0, 0, len(obs) // n_cores
+    ids = obs["ObjID"].values
+
+    while i < n_cores - 1:
+        cursor += dx
+        while ids[cursor] == ids[cursor + 1]:
+            cursor += 1
+        indices[i] = cursor
+        i += 1
+
+    return np.split(obs, indices)
+
+
+def filter_observations(df, min_obs=2, min_arc=1, max_time=90):
+    # create a mask based on min # of obs, min arc length, max time between shortest pair
+    mask = df.groupby("ObjID").apply(filter_tracklets, min_obs, min_arc, max_time)
+    df = df[df["ObjID"].isin(mask[mask].index)]
+    return df
+
+
+def filter_tracklets(df, min_obs=2, min_arc=1, max_time=90):
+    init = SkyCoord(ra=df["AstRA(deg)"].iloc[0], dec=df["AstDec(deg)"].iloc[0], unit="deg")
+    final = SkyCoord(ra=df["AstRA(deg)"].iloc[-1], dec=df["AstDec(deg)"].iloc[-1], unit="deg")
+
+    return np.logical_and.reduce((len(df) >= min_obs,
+                                  init.separation(final).to(u.arcsecond).value > min_arc,
+                                  df["FieldMJD"].diff().min() * 1440 < max_time))
 
 
 def create_digest2_input(in_path="/data/epyc/projects/jpl_survey_sim/10yrs/detections/march_start_v2.1/S0/",
@@ -202,6 +231,24 @@ def create_digest2_input(in_path="/data/epyc/projects/jpl_survey_sim/10yrs/detec
                 # sort by the object and then the time
                 df = df.sort_values(["ObjID", "FieldMJD"])
 
+                # mask out any bad tracklet groups
+                # if more than one core is available then split the dataframe up and parallelise
+                if n_cores > 1:
+                    df_split = split_observations(df)
+                    pool = Pool(n_cores)
+                    df = pd.concat(pool.starmap(filter_observations, zip(df_split,
+                                                                         repeat(min_obs, n_cores),
+                                                                         repeat(min_arc, n_cores),
+                                                                         repeat(max_time, n_cores))))
+                    pool.close()
+                    pool.join()
+                else:
+                    df = filter_observations(df, min_obs=min_obs, min_arc=min_arc, max_time=max_time)
+
+                if timeit:
+                    print_time_delta(start, time.time(), label=f"Filtered nightly observations {night}")
+                    start = time.time()
+
                 # write the new file back out
                 df.to_hdf(out_path + f"filtered_visit_{file:03d}.h5", key="df")
 
@@ -212,25 +259,6 @@ def create_digest2_input(in_path="/data/epyc/projects/jpl_survey_sim/10yrs/detec
         if not isfile(out_path + "night_{:03d}.obs".format(night)) or append:
             # get only the rows on this night
             nightly_obs = df[df["night"] == night]
-
-            # mask out any bad tracklet groups
-            # if more than one core is available then split the dataframe up and parallelise
-            if n_cores > 1:
-                nightly_obs_split = np.array_split(nightly_obs, n_cores)
-                pool = Pool(n_cores)
-                nightly_obs = pd.concat(pool.starmap(filter_observations, zip(nightly_obs_split,
-                                                                              repeat(min_obs, n_cores),
-                                                                              repeat(min_arc, n_cores),
-                                                                              repeat(max_time, n_cores))))
-                pool.close()
-                pool.join()
-            else:
-                nightly_obs = filter_observations(nightly_obs, min_obs=min_obs, min_arc=min_arc,
-                                                  max_time=max_time)
-
-            if timeit:
-                print_time_delta(start, time.time(), label=f"Filtered nightly observations {night}")
-                start = time.time()
 
             # convert RA and Dec to hourangles and MJD to regular dates
             ra_degrees = Angle(nightly_obs["AstRA(deg)"], unit="deg").hms
