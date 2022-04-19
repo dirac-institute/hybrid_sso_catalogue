@@ -54,7 +54,7 @@ def plot_neo_scores(neo_scores, density=False, bins=np.linspace(0, 100, 30), nig
 
 def get_specific_neo_score(path, file_name):
     if file_name.endswith(".filtered.dat"):
-        if isfile(file_name):
+        if isfile(path + file_name):
             with open(path + file_name, "r") as f:
                 ignore_me = f.readline().rstrip() == ""
             if not ignore_me:
