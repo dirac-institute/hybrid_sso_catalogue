@@ -99,14 +99,19 @@ def print_time_delta(start, end, label):
 
 
 def filter_observations(df, min_obs=2, min_arc=1, max_time=90):
+    print(f"[filter_observations] min_obs:{min_obs}, min_arc:{min_arc}, max_time:{max_time}")
+
     # create a mask based on min # of obs, min arc length, max time between shortest pair
     mask = df.groupby("ObjID").apply(filter_tracklets, min_obs, min_arc, max_time)
     df = df[df["ObjID"].isin(mask[mask].index)]
     return df
 
+
 def filter_tracklets(df, min_obs=2, min_arc=1, max_time=90):
     init = SkyCoord(ra=df["AstRA(deg)"].iloc[0], dec=df["AstDec(deg)"].iloc[0], unit="deg")
     final = SkyCoord(ra=df["AstRA(deg)"].iloc[-1], dec=df["AstDec(deg)"].iloc[-1], unit="deg")
+
+    print(f"[filter_tracklets] min_obs:{min_obs}, min_arc:{min_arc}, max_time:{max_time}")
 
     return np.logical_and.reduce((len(df) >= min_obs,
                                   init.separation(final).to(u.arcsecond).value > min_arc,
@@ -191,14 +196,16 @@ def create_digest2_input(in_path="/data/epyc/projects/jpl_survey_sim/10yrs/detec
                     print_time_delta(start, time.time(), label=f"Reading file {file}")
                     start = time.time()
 
+                print(f"[main] min_obs:{min_obs}, min_arc:{min_arc}, max_time:{max_time}")
+
                 # if more than one core is available then split the dataframe up and parallelise
                 if n_cores > 1:
                     df_split = np.array_split(df, n_cores)
                     pool = Pool(n_cores)
                     df = pd.concat(pool.starmap(filter_observations, zip(df_split,
-                                                                         repeat(min_obs, len(df_split)),
-                                                                         repeat(min_arc, len(df_split)),
-                                                                         repeat(max_time, len(df_split)))))
+                                                                         repeat(min_obs, n_cores),
+                                                                         repeat(min_arc, n_cores),
+                                                                         repeat(max_time, n_cores))))
                     pool.close()
                     pool.join()
                 else:
