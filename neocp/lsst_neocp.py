@@ -324,7 +324,7 @@ def main():
 
     if args.neo_hyak:
         args.in_path = "/gscratch/dirac/tomwagg/simulated_obs/S0/"
-        args.out_path = "neo/"
+        args.out_path = "/gscratch/dirac/tomwagg/hybrid_sso_catalogue/neocp/neo/"
 
     print(f"Creating digest2 files for nights {args.start_night} to {args.final_night} in {args.out_path}")
 
