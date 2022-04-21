@@ -29,7 +29,18 @@ f2n = [[0, 1, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
        [144, 145, 146, 147, 148, 149, 150, 151, 152, 154, 157, 159],
        [159, 160, 161, 162, 163, 165, 166, 167, 168, 169, 170, 171],
        [171, 172, 173, 174, 175, 178, 179, 180, 181, 182, 183, 184, 185],
-       [185, 186, 187, 188, 191, 192, 193, 196, 197, 198, 199, 200, 201, 202]]
+       [185, 186, 187, 188, 191, 192, 193, 196, 197, 198, 199, 200, 201, 202],
+       [202, 203, 204, 205, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224],
+       [224, 225, 226, 227, 228, 229, 230, 231, 232, 234, 235, 236, 237, 238, 239],
+       [239, 240, 242, 243, 244, 245, 246, 247, 255, 256, 257, 258, 259, 260],
+       [260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275],
+       [275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289],
+       [289, 290, 291, 292, 293, 294, 295, 296, 297, 298, 299, 303, 304, 305, 306, 307, 308],
+       [308, 309, 310, 311, 312, 313, 314, 315, 316, 317, 318, 319, 320, 321, 322],
+       [322, 323, 324, 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 337],
+       [337, 338, 339, 340, 341, 342, 343, 344, 345, 346, 347, 348, 349, 350],
+       [350, 351, 352, 353, 354, 355, 356, 358, 359, 361, 362, 363, 364, 365],
+       [365, 366, 367, 368, 369, 370, 371, 372, 373, 374, 375, 376, 377]]
 
 
 def find_first_file(night_range):
@@ -297,6 +308,8 @@ def main():
                         help="Replace in_path and out_path with defaults for MBAs")
     parser.add_argument('-Mh', '--mba-hyak', action="store_true",
                         help="Replace in_path and out_path with defaults for MBAs whilst on Hyak")
+    parser.add_argument('-Nh', '--neo-hyak', action="store_true",
+                        help="Replace in_path and out_path with defaults for NEOs whilst on Hyak")
     parser.add_argument('-t', '--timeit', action="store_true",
                         help="Whether to time the code and print it out")
     args = parser.parse_args()
@@ -308,6 +321,10 @@ def main():
     if args.mba_hyak:
         args.in_path = [f'/gscratch/dirac/tomwagg/simulated_obs/S1_{i:02d}/' for i in range(14)]
         args.out_path = "/gscratch/dirac/tomwagg/hybrid_sso_catalogue/neocp/mba/"
+
+    if args.neo_hyak:
+        args.in_path = "/gscratch/dirac/tomwagg/simulated_obs/S0/"
+        args.out_path = "neo/"
 
     print(f"Creating digest2 files for nights {args.start_night} to {args.final_night} in {args.out_path}")
 
