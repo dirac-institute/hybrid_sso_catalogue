@@ -1,0 +1,82 @@
+\documentclass[twocolumn, twocolappendix]{aastex631}
+\received{\today}
+\shorttitle{Detecting DCOs with LISA}
+\graphicspath{{../figures/}}
+
+\usepackage{lipsum}
+\usepackage{physics}
+\usepackage{multirow}
+\usepackage{xspace}
+\usepackage{natbib}
+\usepackage{fontawesome5}
+\usepackage{xcolor}
+\usepackage{wrapfig}
+\usepackage[figuresright]{rotating}
+
+% remove indents in footnotes
+\usepackage[hang,flushmargin]{footmisc} 
+
+\newcommand{\todo}[1]{{\color{red}{[TODO: #1}]}}
+
+% custom function for adding units
+\makeatletter
+\newcommand{\unit}[1]{%
+    \,\mathrm{#1}\checknextarg}
+\newcommand{\checknextarg}{\@ifnextchar\bgroup{\gobblenextarg}{}}
+\newcommand{\gobblenextarg}[1]{\,\mathrm{#1}\@ifnextchar\bgroup{\gobblenextarg}{}}
+\makeatother
+
+\begin{document}
+
+\title{The NEOCP in the Era of LSST}
+
+% affiliations
+\newcommand{\cfa}{Center for Astrophysics | Harvard \& Smithsonian, 60 Garden Street, Cambridge, MA 02138, USA}
+\newcommand{\mpa}{Max-Planck-Institut für Astrophysik, Karl-Schwarzschild-Straße 1, 85741 Garching, Germany}
+\newcommand{\cca}{Center for Computational Astrophysics, Flatiron Institute, 162 Fifth Ave, New York, NY, 10010, USA}
+\newcommand{\UvA}{Anton Pannekoek Institute for Astronomy \& Grappa, University of Amsterdam, Postbus 94249, 1090 GE Amsterdam, The Netherlands}
+\newcommand{\UW}{Department of Astronomy, University of Washington, Seattle, WA, 98195}
+
+\author[0000-0001-6147-5761]{T. Wagg}
+\affiliation{\UW}
+
+\correspondingauthor{Tom Wagg}
+\email{tomjwagg@gmail.com}
+
+\begin{abstract}
+    \input{sections/abstract.tex}
+\end{abstract}
+
+\keywords{gravitational waves, gravitational wave detectors, compact objects, stellar mass black holes, neutron stars, binary stars, stellar evolution, pulsars}
+
+\section{Introduction} \label{sec:intro}
+\input{sections/introduction.tex}
+
+\section{Method} \label{sec:method}
+\input{sections/methods.tex}
+
+\section{Results} \label{sec:results}
+\input{sections/results.tex}
+
+\section{Discussion} \label{sec:discussion}
+\input{sections/discussion.tex}
+
+\section{Conclusion \& Summary} \label{sec:conclusion}
+\input{sections/conclusion.tex}
+
+\begin{acknowledgements}
+    We'll thank some people here
+\end{acknowledgements}
+
+\software{}
+
+\bibliographystyle{aasjournal}
+\bibliography{paper}{}
+
+% \restartappendixnumbering
+
+% \allowdisplaybreaks
+% \appendix
+% \input{sections/appendix.tex}
+
+\end{document}
