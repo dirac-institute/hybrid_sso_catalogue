@@ -17,7 +17,12 @@
 \usepackage[hang,flushmargin]{footmisc} 
 
 \newcommand{\todo}[1]{{\color{red}{[TODO: #1}]}}
+\newcommand{\needcite}{{\color{magenta}{(needs citation)}}}
+
+% for shorthand/consistency
 \newcommand{\dig}{\texttt{digest2}}
+\newcommand{\sss}{S3M}
+\newcommand{\mpco}{MPCORB}
 
 % custom function for adding units
 \makeatletter
@@ -70,7 +75,7 @@
     Acknowledgements
 \end{acknowledgements}
 
-\software{\texttt{astroML} \citep{VanderPlas+2012,VanderPlas+2014}, \texttt{scipy} \citep{Virtanen+2020}}
+\software{\texttt{OpenOrb} \citep{Granvik+2009}, \texttt{astroML} \citep{VanderPlas+2012,VanderPlas+2014}, \texttt{scipy} \citep{Virtanen+2020}}
 
 \bibliographystyle{aasjournal}
 \bibliography{paper}{}
