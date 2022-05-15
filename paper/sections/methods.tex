@@ -18,18 +18,25 @@ We split each catalogue into bins of absolute magnitude linearly spaced from $-2
 To complete the merging process, we compile the matched object IDs and delete them from S3M. We then add the entirety of MPCORB to the remaining catalogue, resulting in a hybrid catalogue.
 
 \subsubsection{Assessing quality of hybrid catalogue}
+It is essential that the underlying distributions of the hybrid catalogue do not differ significantly from S3M so that we still accurately reproduce the solar system. In Figure~\ref{fig:hybrid_vs_s3m_dists}, we show the distributions of the absolute magnitude and six orbital elements in both the hybrid catalogue and S3M. It is evident that the distributions are essentially identical.
+
+\begin{figure*}[htb]
+    \centering
+    \includegraphics[width=\textwidth]{hybrid_vs_s3m_distributions.png}
+    \caption{A comparison of the parameter distributions of S3M and the hybrid catalogue.}
+    \label{fig:hybrid_vs_s3m_dists}
+\end{figure*}
+
+As a further check, we compared MPCORB to the objects that were removed from S3M, since these should have nearly identical distributions. In Figure~\ref{fig:density_compare}, we show a comparison of the densities for the heliocentric $x$ and $y$ and it is clear that these distributions are left unchanged in the hybrid catalogue.
+
+\begin{figure}[htb]
+    \centering
+    \includegraphics[width=\columnwidth]{density_comparisons.png}
+    \caption{A comparison of the density of \mpco{} objects with those objects that were matched in \sss{} by our hybrid catalogue pipeline.}
+    \label{fig:density_compare}
+\end{figure}
 
 \subsection{Simulated Observations}
 \subsection{\dig{} Score Calculation}
 \subsection{LSST Discovery probability}
-\todo{need to actually do this}
-
-% \url{https://www.astroml.org/modules/generated/astroML.density_estimation.KNeighborsDensity.html#astroML.density_estimation.KNeighborsDensity}
-
-% \url{https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.cKDTree.query.html#scipy.spatial.cKDTree.query}
-
-\begin{figure}
-    \centering
-    \includegraphics[width=\columnwidth]{density_comparisons.png}
-    \caption{A comparison of the density of \mpco{} objects with those objects that were matched in \sss{} by our hybrid catalogue pipeline.}
-\end{figure}
+\todo{}
