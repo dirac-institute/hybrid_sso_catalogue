@@ -110,11 +110,19 @@ As a further check, we compared MPCORB to the objects that were removed from S3M
 
 \subsection{Simulated Observations}
 
+In order to investigate the effect of LSST sources on the NEOCP, we use simulated observations of the hybrid catalogue.
+
 \todo{Should probably talk about whatever Sam did here \needcite{}}
 
 \subsection{\dig{} Score Calculation}
-\subsubsection{Tracklet submission cuts}
+The main criterion for an object to be placed on the NEOCP is for it to receive an NEO score of at least 65. This score from 0 to 100 assesses the probability that the object is an NEO and is calculated using the \dig{} code \citep{Keys+2019}. We therefore use the same code to check which of the simulated observations of the hybrid catalogue could be submitted to the NEOCP.
 
+We use \dig{} to calculate the NEO score of each NEO and MBA in the hybrid catalogue that is observed in the first year. We apply three further cuts before considering which submissions are eligible for the NEOCP.
+\begin{enumerate}
+    \item \textbf{Number of observations:} We consider only objects which have at least 2 observations on a given night (though we investigate the effect of making this limit more stringent below)
+    \item \textbf{Minimum arc length:} We ensure that each arc is at least 1 arcsecond in length
+    \item \textbf{Maximum time separation:} We set the maximum time between observations to 90 minutes. Thus we only allow tracklets that have at least one pair of observations that occur within 90 minutes of each other
+\end{enumerate}
 
 \subsection{LSST Discovery probability}
 \todo{}
@@ -134,7 +142,7 @@ As a further check, we compared MPCORB to the objects that were removed from S3M
     Acknowledgements
 \end{acknowledgements}
 
-\software{\texttt{OpenOrb} \citep{Granvik+2009}, \texttt{astroML} \citep{VanderPlas+2012,VanderPlas+2014}, \texttt{scipy} \citep{Virtanen+2020}}
+\software{\dig{} v0.19.2 \citep{Keys+2019}, \texttt{OpenOrb} \citep{Granvik+2009}, \texttt{astroML} \citep{VanderPlas+2012,VanderPlas+2014}, \texttt{scipy} \citep{Virtanen+2020}}
 
 \bibliographystyle{aasjournal}
 \bibliography{paper}{}
