@@ -100,7 +100,7 @@ In order to investigate the effect of LSST sources on the NEOCP, we use simulate
 
 \todo{Should probably talk about whatever Sam did here \needcite{}}
 
-\subsection{\dig{} Score Calculation}
+\subsection{\dig{} Score Calculation}\label{sec:digest2_score}
 The main criterion for an object to be placed on the NEOCP is for it to receive an NEO score of at least 65. This score from 0 to 100 assesses the probability that the object is an NEO and is calculated using the \dig{} code \citep{Keys+2019}. We therefore use the same code to check which of the simulated observations of the hybrid catalogue could be submitted to the NEOCP.
 
 We use \dig{} to calculate the NEO score of each NEO and MBA in the hybrid catalogue that is observed in the first year. We apply three further cuts before considering which submissions are eligible for the NEOCP.
@@ -112,11 +112,21 @@ We use \dig{} to calculate the NEO score of each NEO and MBA in the hybrid catal
 With these cuts and the NEO scores of each object we are able to assess the load on the NEOCP from LSST.
 
 \section{Results} \label{sec:results}
+\subsection{Traffic and Purity of the NEOCP}
 \begin{figure*}
     \centering
     \includegraphics[width=\textwidth]{scary.png}
-    \caption{Traffic (number of objects sent) and purity (fraction of objects sent that are NEOs) of the NEOCP during the first year of LSST if every observation is submitted. Different lines correspond to different constraints on the number of observations for a tracklet to be submitted. Gaps due to bad weather are highlighted with grey areas.}
+    \caption{Traffic (number of objects sent) and purity (fraction of objects sent that are NEOs) of the NEOCP during the first year of LSST if every observation that qualifies for submission is submitted. Each line is plotted using a rolling window of a week to smooth stochastic effects. Different lines correspond to different constraints on the number of observations for a tracklet to be submitted. Nights on which no observations were taken are highlighted with grey areas.}
+    \label{fig:neocp_traffic}
 \end{figure*}
+
+In Figure~\ref{fig:neocp_traffic}, we summarise the effect of LSST submissions on the NEOCP. The top panel shows the traffic of the NEOCP, meaning the number of objects that would be submitted to the page, whilst the bottom panel shows the purity, meaning the fraction of objects submitted to the page that are actually NEOs. This plot shows the result of submitting \textit{every} qualifying observation
+
+The current typical traffic of the NEOCP is on the order of 25 submissions per night. We show that this traffic would increase by up to 3 orders of magnitude as a result of LSST submissions. Each line corresponding to a different number of minimum nightly observations (increasing from the original choice of 2 as discussed in Section~\ref{sec:digest2_score}). Although the traffic is lower when requiring more observations, even with a minimum of 6 observations the traffic can reach several thousands of submissions per night, which is far more than the NEOCP is currently equipped to handle.
+
+The purity of the NEOCP is also severely impacted by LSST observations, with the abundance of MBA observations polluting the page as false NEOs. For almost the entire year the page will have a purity below 10\%, meaning that only 1 in 10 objects on the page is actually an NEO. This can decrease below even 1\% and thus a lot of follow up time would be wasted in looking at MBAs masquerading as NEOs.
+
+There are two periodic effects that can be noted in both the traffic and the purity panels. There is a clear seasonal variation over the year as the ecliptic plane moves through the sky. LSST observes from the southern hemisphere and thus in first half of the year when the ecliptic is at lower declinations, more MBAs will be observed. This both increases the traffic and decreases the purity of the NEOCP. In addition to this long term variation, there are also shorter term variations that are most clearly seen in the purity panel. On day 17 and approximately every 30 days after this there is a periodic decrease in the purity of the page. This coincides with the occurrence of a full moon, since LSST has to observe a different part of the sky during this time and this leads to more MBA detections and thus lower purity. \todo{Check I explained these correctly}
 
 \section{Discussion} \label{sec:discussion}
 
