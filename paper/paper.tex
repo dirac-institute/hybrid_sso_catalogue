@@ -120,13 +120,15 @@ With these cuts and the NEO scores of each object we are able to assess the load
     \label{fig:neocp_traffic}
 \end{figure*}
 
-In Figure~\ref{fig:neocp_traffic}, we summarise the effect of LSST submissions on the NEOCP. The top panel shows the traffic of the NEOCP, meaning the number of objects that would be submitted to the page, whilst the bottom panel shows the purity, meaning the fraction of objects submitted to the page that are actually NEOs. This plot shows the result of submitting \textit{every} qualifying observation
+In Figure~\ref{fig:neocp_traffic}, we summarise the effect of LSST submissions on the NEOCP. The top panel shows the traffic of the NEOCP, meaning the number of objects that would be submitted to the page, whilst the bottom panel shows the purity, meaning the fraction of objects submitted to the page that are actually NEOs. This plot shows the result of submitting \textit{every} qualifying observation to the NEOCP.
 
 The current typical traffic of the NEOCP is on the order of 25 submissions per night. We show that this traffic would increase by up to 3 orders of magnitude as a result of LSST submissions. Each line corresponding to a different number of minimum nightly observations (increasing from the original choice of 2 as discussed in Section~\ref{sec:digest2_score}). Although the traffic is lower when requiring more observations, even with a minimum of 6 observations the traffic can reach several thousands of submissions per night, which is far more than the NEOCP is currently equipped to handle.
 
 The purity of the NEOCP is also severely impacted by LSST observations, with the abundance of MBA observations polluting the page as false NEOs. For almost the entire year the page will have a purity below 10\%, meaning that only 1 in 10 objects on the page is actually an NEO. This can decrease below even 1\% and thus a lot of follow up time would be wasted in looking at MBAs masquerading as NEOs.
 
-There are two periodic effects that can be noted in both the traffic and the purity panels. There is a clear seasonal variation over the year as the ecliptic plane moves through the sky. LSST observes from the southern hemisphere and thus in first half of the year when the ecliptic is at lower declinations, more MBAs will be observed. This both increases the traffic and decreases the purity of the NEOCP. In addition to this long term variation, there are also shorter term variations that are most clearly seen in the purity panel. On day 17 and approximately every 30 days after this there is a periodic decrease in the purity of the page. This coincides with the occurrence of a full moon, since LSST has to observe a different part of the sky during this time and this leads to more MBA detections and thus lower purity. \todo{Check I explained these correctly}
+There are two periodic effects that can be noted in both the traffic and the purity panels. There is a clear seasonal variation over the year as the ecliptic plane moves through the sky. LSST observes from the southern hemisphere and thus in first half of the year when the ecliptic is at lower declinations, more MBAs will be observed. This both increases the traffic and decreases the purity of the NEOCP. In addition to this long term variation, there are also shorter term variations that are most clearly seen in the purity panel. On day 17 and approximately every 30 days after this there is a periodic decrease in the purity of the page. This coincides with the occurrence of a full moon, since LSST has to observe a different part of the sky during this time and this leads to more MBA detections and thus lower purity.
+
+\todo{Check that I explained both of these effects correctly (particularly the moon one)}
 
 \begin{figure*}
     \centering
@@ -134,6 +136,14 @@ There are two periodic effects that can be noted in both the traffic and the pur
     \caption{As Figure~\ref{fig:neocp_traffic}, but only including objects that would not be detected by LSST alone. Note the y-scale of the lower panel is now linear.}
     \label{fig:neocp_traffic_unfindable}
 \end{figure*}
+
+Overall, it is clear that if we proceed in the same manner as is currently recommended that the NEOCP will not be able to handle the load. We now consider how we could proceed differently.
+
+\subsection{LSST Detections}
+
+LSST will be able to detect and characterise many potential NEOs without any external input. This means that many of the objects submitted to the NEOCP will actual result in wasted follow up time by the community. We assess the magnitude of this effect using the python package \texttt{difi}\footnote{\url{https://github.com/moeyensj/difi}}. This package calculates which objects are detected by LSST, where a detection is defined as occurring when the same object is observed on at least 3 separate nights, each with at least 2 observations separated by at most 90 minutes.
+
+In Figure~\ref{fig:neocp_traffic_unfindable}, we repeat Figure~\ref{fig:neocp_traffic} but now only including objects that would not be detected by LSST alone. Now we see that the traffic from LSST rarely exceeds more than 100 objects and is often only a handful. Similarly the purity is much higher, with an average of around 25\%.
 
 \section{Discussion} \label{sec:discussion}
 
@@ -143,7 +153,7 @@ There are two periodic effects that can be noted in both the traffic and the pur
     Acknowledgements
 \end{acknowledgements}
 
-\software{\dig{} v0.19.2 \citep{Keys+2019}, \texttt{OpenOrb} \citep{Granvik+2009}, \texttt{astroML} \citep{VanderPlas+2012,VanderPlas+2014}, \texttt{scipy} \citep{Virtanen+2020}}
+\software{\dig{} v0.19.2 \citep{Keys+2019}, \texttt{OpenOrb} \citep{Granvik+2009}, \texttt{difi}, \texttt{astroML} \citep{VanderPlas+2012,VanderPlas+2014}, \texttt{scipy} \citep{Virtanen+2020}}
 
 \bibliographystyle{aasjournal}
 \bibliography{paper}{}
