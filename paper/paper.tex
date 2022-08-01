@@ -115,7 +115,7 @@ With these cuts and the NEO scores of each object we are able to assess the load
 \subsection{Traffic and Purity of the NEOCP}
 \begin{figure*}
     \centering
-    \includegraphics[width=\textwidth]{scary.png}
+    \includegraphics[width=\textwidth]{traffic_purity.png}
     \caption{Traffic (number of objects sent) and purity (fraction of objects sent that are NEOs) of the NEOCP during the first year of LSST if every observation that qualifies for submission is submitted. Each line is plotted using a rolling window of a week to smooth stochastic effects. Different lines correspond to different constraints on the number of observations for a tracklet to be submitted. Nights on which no observations were taken are highlighted with grey areas.}
     \label{fig:neocp_traffic}
 \end{figure*}
@@ -127,6 +127,13 @@ The current typical traffic of the NEOCP is on the order of 25 submissions per n
 The purity of the NEOCP is also severely impacted by LSST observations, with the abundance of MBA observations polluting the page as false NEOs. For almost the entire year the page will have a purity below 10\%, meaning that only 1 in 10 objects on the page is actually an NEO. This can decrease below even 1\% and thus a lot of follow up time would be wasted in looking at MBAs masquerading as NEOs.
 
 There are two periodic effects that can be noted in both the traffic and the purity panels. There is a clear seasonal variation over the year as the ecliptic plane moves through the sky. LSST observes from the southern hemisphere and thus in first half of the year when the ecliptic is at lower declinations, more MBAs will be observed. This both increases the traffic and decreases the purity of the NEOCP. In addition to this long term variation, there are also shorter term variations that are most clearly seen in the purity panel. On day 17 and approximately every 30 days after this there is a periodic decrease in the purity of the page. This coincides with the occurrence of a full moon, since LSST has to observe a different part of the sky during this time and this leads to more MBA detections and thus lower purity. \todo{Check I explained these correctly}
+
+\begin{figure*}
+    \centering
+    \includegraphics[width=\textwidth]{traffic_purity_unfindable.png}
+    \caption{As Figure~\ref{fig:neocp_traffic}, but only including objects that would not be detected by LSST alone. Note the y-scale of the lower panel is now linear.}
+    \label{fig:neocp_traffic_unfindable}
+\end{figure*}
 
 \section{Discussion} \label{sec:discussion}
 
