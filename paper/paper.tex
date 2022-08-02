@@ -65,7 +65,7 @@
 \section{Method} \label{sec:method}
 In order to make predictions for the NEOCP in the era of LSST, we make simulated observations of a catalogue of solar system objects that takes into account currently known objects. We then use the \dig{} code to calculate NEO scores for each object and use these values to make predictions for the NEOCP. In the subsections below we explain each of these steps in more details.
 
-\subsection{Hybrid Catalogue Pipeline}
+\subsection{Hybrid Catalogue Pipeline}\label{sec:hybrid}
 Most studies that make predictions for LSST use a synthetic catalogue of solar system objects that doesn't account for prior observations \needcite{}. In reality, we have already detected more than a million objects in the solar system and this number will continue to grow until LSST comes online. This means that, current predictions of detection rates will be inflated since a fraction of ``new'' detections may already be known. Therefore, for this paper we created ``hybrid'' catalogue that combines a synthetic catalogue with all known observations, whilst keeping the population distributions relatively unchanged.
 
 \begin{figure*}[htb]
@@ -139,11 +139,24 @@ There are two periodic effects that can be noted in both the traffic and the pur
 
 Overall, it is clear that if we proceed in the same manner as is currently recommended that the NEOCP will not be able to handle the load. We now consider how we could proceed differently.
 
-\subsection{LSST Detections}
+\pagebreak
+
+\subsection{NEOCP without LSST Detections}\label{sec:no_LSST_detections}
 
 LSST will be able to detect and characterise many potential NEOs without any external input. This means that many of the objects submitted to the NEOCP will actual result in wasted follow up time by the community. We assess the magnitude of this effect using the python package \texttt{difi}\footnote{\url{https://github.com/moeyensj/difi}}. This package calculates which objects are detected by LSST, where a detection is defined as occurring when the same object is observed on at least 3 separate nights, each with at least 2 observations separated by at most 90 minutes.
 
-In Figure~\ref{fig:neocp_traffic_unfindable}, we repeat Figure~\ref{fig:neocp_traffic} but now only including objects that would not be detected by LSST alone. Now we see that the traffic from LSST rarely exceeds more than 100 objects and is often only a handful. Similarly the purity is much higher, with an average of around 25\%.
+In Figure~\ref{fig:neocp_traffic_unfindable}, we repeat Figure~\ref{fig:neocp_traffic} but now only including objects that would not be detected by LSST alone. This represents a best case scenario in which we had foreknowledge of which observed objects would be detected. In this scenario we see that the traffic from LSST rarely exceeds more than 100 objects and is often only a handful. Similarly the purity is much higher, with an average of around 25\%. We conclude that if we were to know whether an object would be detected by LSST, the load on the NEOCP would remain at manageable levels.
+
+\subsection{Estimating LSST Detection Probability}
+We now propose a method of \textit{predicting} whether an observed object will be detected by LSST in order to emulate the best case scenario described in Section~\ref{sec:no_LSST_detections}.
+
+For an object to be detected by LSST, it must be observed at least twice on at least three separate nights. Therefore, one can predict whether an object will be detected simply by whether it will be in LSST's field of view on the following night - if it will pass out of the field of view by the next night then it will not be detected by LSST and should be submitted to the NEOCP.
+
+In order to determine the location of an object on the following night one needs to know its orbit. Each object on a given night consists of at least two observations
+\begin{equation}
+    O = \{ \alpha, \delta, t \}
+\end{equation}
+where $\alpha$ is the right ascension, $\delta$ is the declination and $t$ is the time of observation. One can then determine the proper motion of the object on the sky, ($\dot{\alpha}$, $\dot{\delta}$), by calculating the change in position over time between the two observations. This determines 4 and the 6 orbital elements, but the distance, $D$ and radial velocity, $\dot{D}$ of the object are unconstrained.
 
 \section{Discussion} \label{sec:discussion}
 
