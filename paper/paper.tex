@@ -52,6 +52,7 @@
 \email{tomjwagg@gmail.com}
 
 \begin{abstract}
+    \todo{}
     \placeholder{1}
 
     \placeholder{2}
@@ -60,6 +61,7 @@
 \keywords{Near-Earth objects, Asteroids, Solar system, Small Solar System bodies, Surveys}
 
 \section{Introduction} \label{sec:intro}
+\todo{}
 \placeholder{1-9}
 
 \section{Method} \label{sec:method}
@@ -71,7 +73,7 @@ Most studies that make predictions for LSST use a synthetic catalogue of solar s
 \begin{figure*}[htb]
     \centering
     \includegraphics[width=\textwidth]{hybrid_vs_s3m_distributions.pdf}
-    \caption{A comparison of the parameter distributions of S3M \citep{Granvik+2009} and the hybrid catalogue we created.}
+    \caption{A comparison of the parameter distributions of S3M \citep{Grav+2011} and the hybrid catalogue we created.}
     \label{fig:hybrid_vs_s3m_dists}
 \end{figure*}
 
@@ -139,8 +141,6 @@ There are two periodic effects that can be noted in both the traffic and the pur
 
 Overall, it is clear that if we proceed in the same manner as is currently recommended that the NEOCP will not be able to handle the load. We now consider how we could proceed differently.
 
-\pagebreak
-
 \subsection{NEOCP without LSST Detections}\label{sec:no_LSST_detections}
 
 LSST will be able to detect and characterise many potential NEOs without any external input. This means that many of the objects submitted to the NEOCP will actual result in wasted follow up time by the community. We assess the magnitude of this effect using the python package \texttt{difi}\footnote{\url{https://github.com/moeyensj/difi}}. This package calculates which objects are detected by LSST, where a detection is defined as occurring when the same object is observed on at least 3 separate nights, each with at least 2 observations separated by at most 90 minutes.
@@ -158,15 +158,33 @@ In order to determine the location of an object on the following night one needs
 \end{equation}
 where $\alpha$ is the right ascension, $\delta$ is the declination and $t$ is the time of observation. One can then determine the proper motion of the object on the sky, ($\dot{\alpha}$, $\dot{\delta}$), by calculating the change in position over time between the two observations. This determines 4 and the 6 orbital elements, but the distance, $D$ and radial velocity, $\dot{D}$ of the object are unconstrained.
 
+We draw a sample of $D$ uniformly in log-space between $0.1$-$100 \unit{AU}$ and a sample of $\dot{D}$ uniformly between $-50$-$50 \unit{km}{s^{-1}}$ to create a grid of $(D, \dot{D})$. Combining these with the measured $(\alpha, \delta, \dot{\alpha}, \dot{\delta})$ values (with some scatter to account for the detector uncertainty), we create a series of possible variant orbits for the object. We adjust these orbits to account for the light travel time using \texttt{THOR} \citep{Moeyens+2021} and then propagate them until the next night using \texttt{OpenOrb} \citep{Granvik+2009}. \todo{Check through this paragraph to check we actually do this once I actually do it haha}.
+
+We estimate the probability of the object being detected by LSST, $P({\rm detect})$, as 
+\begin{equation}
+    P({\rm detect}) \propto \sum_{i = 1}^{N} \sum_{j = 1}^{M} \theta_{i, j} P(D_i) P(\dot{D}_j)
+\end{equation}
+where $\theta_{i, j}$ is a heaviside step function that is 1 if the orbit corresponding to distance $D_i$ and radial velocity $\dot{D}_j$ results in the object remaining in the LSST field of view and 0 otherwise, $P(D_i)$ is the probability of the distance $D_i$ occurring in the hybrid catalogue and $P(\dot{D}_j)$ is the probability of the radial velocity $\dot{D}_j$ occurring in the hybrid catalogue.
+
+\todo{Need to explain how we know where the detector is}
+
+\todo{Demonstrate the efficiency of this method with some plots}
+
+\todo{Maybe also add plots of the D/dot(D) distributions of HC}
+
 \section{Discussion} \label{sec:discussion}
 
+\todo{Some of the results may move here, unsure what else}
+
 \section{Conclusion \& Summary} \label{sec:conclusion}
+
+\todo{}
 
 \begin{acknowledgements}
     Acknowledgements
 \end{acknowledgements}
 
-\software{\dig{} v0.19.2 \citep{Keys+2019}, \texttt{OpenOrb} \citep{Granvik+2009}, \texttt{difi}, \texttt{astroML} \citep{VanderPlas+2012,VanderPlas+2014}, \texttt{scipy} \citep{Virtanen+2020}}
+\software{\dig{} v0.19.2 \citep{Keys+2019}, \texttt{OpenOrb} \citep{Granvik+2009}, \texttt{difi}, \texttt{THOR} \citep{Moeyens+2021}, \texttt{astroML} \citep{VanderPlas+2012,VanderPlas+2014}, \texttt{scipy} \citep{Virtanen+2020}}
 
 \bibliographystyle{aasjournal}
 \bibliography{paper}{}
