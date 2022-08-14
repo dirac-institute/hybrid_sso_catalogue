@@ -42,9 +42,10 @@ def get_LSST_schedule(night, fields=["fieldRA", "fieldDec", "observationStartMJD
     cur = con.cursor()
 
     res = cur.execute(f"select {','.join(fields)} from observations where night={night}")
+    df = pd.DataFrame(res.fetchall(), columns=fields)
+
     con.close()
 
-    df = pd.DataFrame(res.fetchall(), columns=fields)
     return df
 
 
