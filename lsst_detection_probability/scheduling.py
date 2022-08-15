@@ -20,9 +20,7 @@ params = {'figure.figsize': (12, 8),
 plt.rcParams.update(params)
 
 
-def get_LSST_schedule(night, fields=["fieldRA", "fieldDec", "observationStartMJD",
-                                     "flush_by_mjd", "visitExposureTime", "numExposures",
-                                     "visitTime"]):
+def get_LSST_schedule(night, fields=["fieldRA", "fieldDec", "observationStartMJD"]):
     """Get the schedule for LSST (where it will point at what time)
 
     Parameters
@@ -30,8 +28,7 @@ def get_LSST_schedule(night, fields=["fieldRA", "fieldDec", "observationStartMJD
     night : `int`
         Which night you want the schedule for
     fields : `list`, optional
-        Fields you want from the database, by default ["fieldRA", "fieldDec", "observationStartMJD",
-        "flush_by_mjd", "visitExposureTime", "numExposures", "visitTime"]
+        Fields you want from the database, by default ["fieldRA", "fieldDec", "observationStartMJD"]
 
     Returns
     -------
