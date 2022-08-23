@@ -20,7 +20,7 @@ params = {'figure.figsize': (12, 8),
 plt.rcParams.update(params)
 
 
-def get_LSST_schedule(night, fields=["fieldRA", "fieldDec", "observationStartMJD"]):
+def get_LSST_schedule(night, night_zero=59638, fields=["fieldRA", "fieldDec", "observationStartMJD"]):
     """Get the schedule for LSST (where it will point at what time)
 
     Parameters
@@ -37,11 +37,16 @@ def get_LSST_schedule(night, fields=["fieldRA", "fieldDec", "observationStartMJD
     """
     con = sqlite3.connect('/epyc/projects/jpl_survey_sim/10yrs/opsims/march_start_v2.1_10yrs.db')
     cur = con.cursor()
-
-    res = cur.execute(f"select {','.join(fields)} from observations where night={night}")
+    
+    if isinstance(night, int):
+        res = cur.execute(f"select {','.join(fields)} from observations where night={night + 1}")
+    else:
+        res = cur.execute(f"select {','.join(fields)} from observations where night between {night[0] + 1} and {night[1] + 1}")
     df = pd.DataFrame(res.fetchall(), columns=fields)
 
     con.close()
+    
+    df["night"] = (df["observationStartMJD"] - 0.5).astype(int) - night_zero
 
     return df
 
