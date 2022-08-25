@@ -140,3 +140,4 @@ catalogues/*
 *.obs
 *.synctex.gz
 digest2/*
+*.db
