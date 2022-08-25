@@ -1,4 +1,4 @@
-\documentclass[twocolumn, twocolappendix]{aastex631}
+\documentclass[twocolumn]{aastex631}
 \received{\today}
 \shorttitle{NEOCP in Era of LSST}
 \graphicspath{{figures/}}
@@ -79,13 +79,6 @@ In order to make predictions for the NEOCP in the era of LSST, we make simulated
 \subsection{Hybrid Catalogue Pipeline}\label{sec:hybrid}
 Most studies that make predictions for LSST use a synthetic catalogue of solar system objects that doesn't account for prior observations \needcite{}. In reality, we have already detected more than a million objects in the solar system and this number will continue to grow until LSST comes online. This means that, current predictions of detection rates will be inflated since a fraction of ``new'' detections may already be known. Therefore, for this paper we created ``hybrid'' catalogue that combines a synthetic catalogue with all known observations, whilst keeping the population distributions relatively unchanged.
 
-\begin{figure*}[htb]
-    \centering
-    \includegraphics[width=\textwidth]{hybrid_vs_s3m_distributions.pdf}
-    \caption{A comparison of the parameter distributions of \sss{} \citep{Grav+2011} and the hybrid catalogue we created.}
-    \label{fig:hybrid_vs_s3m_dists}
-\end{figure*}
-
 We created the hybrid catalogue to be dynamic, such that we can run a single pipeline to merge in an updated version of \mpco{} as more objects are discovered in the time until LSST comes online. All code to reproduce this hybrid catalogue is open-source and available on GitHub\footnote{\url{https://github.com/dirac-institute/hybrid_sso_catalogue/tree/main/hybridcat/hybridcat}}.
 
 \subsubsection{Data preprocessing}
@@ -98,12 +91,7 @@ The general idea for the merging algorithm is to inject each object from \mpco{}
 
 We split each catalogue into bins of absolute magnitude linearly spaced from $-2$ to $28$ and perform the merge algorithm on each bin separately. For each bin we build a K-D trees for both catalogues based on the positions ($x, y, z$) of objects. For every \mpco{} object we query the \sss{} tree for the nearest $100$ objects up to a maximum distance of $0.1 \unit{AU}$, excluding any that have already been matched to a different real object. From these remaining nearest neighbours, we select the \sss{} object with the closest velocity as the matched object. If there were no remaining neighbours, either because no synthetic objects were nearby or because all nearby objects had already been matched, then we directly add this real object without replacing a synthetic one.
 
-To complete the merging process, we compile the matched object IDs and delete them from \sss{}. We then add the entirety of \mpco{} to the remaining catalogue, resulting in a hybrid catalogue.
-
-\subsubsection{Assessing quality of hybrid catalogue}
-It is essential that the underlying distributions of the hybrid catalogue do not differ significantly from \sss{} so that we still accurately reproduce the solar system. In Figure~\ref{fig:hybrid_vs_s3m_dists}, we show the distributions of the absolute magnitude and six orbital elements in both the hybrid catalogue and \sss{}. It is evident that the distributions are essentially identical.
-
-As a further check, we compared \mpco{} to the objects that were removed from \sss{}, since these should have nearly identical distributions. In Figure~\ref{fig:density_compare}, we show a comparison of the densities for the heliocentric $x$ and $y$ and it is clear that these distributions are left unchanged in the hybrid catalogue.
+To complete the merging process, we compile the matched object IDs and delete them from \sss{}. We then add the entirety of \mpco{} to the remaining catalogue, resulting in a hybrid catalogue. We assess the quality of the hybrid catalogue in Appendix~\ref{app:hybrid_quality}.
 
 \subsection{Simulated Observations}
 
@@ -209,18 +197,25 @@ where $\theta_{i, j}$ is a heaviside step function that is 1 if the orbit corres
 
 \allowdisplaybreaks
 \appendix
-\section{Extra Figures}\label{app:extra_figs}
+
+\section{Assessing quality of hybrid catalogue}\label{app:hybrid_quality}
+
+\begin{figure*}[htb]
+    \centering
+    \includegraphics[width=\textwidth]{hybrid_vs_s3m_distributions.pdf}
+    \caption{A comparison of the parameter distributions of \sss{} \citep{Grav+2011} and the hybrid catalogue we created.}
+    \label{fig:hybrid_vs_s3m_dists}
+\end{figure*}
+
+It is essential that the underlying distributions of the hybrid catalogue do not differ significantly from \sss{} so that we still accurately reproduce the solar system. In Figure~\ref{fig:hybrid_vs_s3m_dists}, we show the distributions of the absolute magnitude and six orbital elements in both the hybrid catalogue and \sss{}. It is evident that the distributions are essentially identical.
+
+As a further check, we compared \mpco{} to the objects that were removed from \sss{}, since these should have nearly identical distributions. In Figure~\ref{fig:density_compare}, we show a comparison of the densities for the heliocentric $x$ and $y$ and it is clear that these distributions are left unchanged in the hybrid catalogue.
 \begin{figure}[htb]
     \centering
-    \includegraphics[width=\columnwidth]{density_comparisons.pdf}
-    \caption{A comparison of the density of \mpco{} objects with those objects that were matched in \sss{} by our hybrid catalogue pipeline.}
+    \includegraphics[width=0.48\textwidth]{density_comparisons.pdf}
+    \raisebox{0.5\height}{\includegraphics[width=0.48\textwidth]{density_residuals.pdf}}
+    \caption{\textbf{Left:} A comparison of the density of \mpco{} objects with those objects that were matched in \sss{} by our hybrid catalogue pipeline. \textbf{Right:} Residuals between the two plots in the left panel.}
     \label{fig:density_compare}
-\end{figure}
-\begin{figure}[htb]
-    \centering
-    \includegraphics[width=\columnwidth]{density_residuals.pdf}
-    \caption{}
-    \label{fig:density_residuals}
 \end{figure}
 
 \end{document}
