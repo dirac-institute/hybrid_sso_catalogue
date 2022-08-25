@@ -65,6 +65,14 @@ Near-Earth Objects (NEOs) are objects that may come close enough to the Earth th
 
 The Minor Planet Center maintains a catalogue of known NEOs and their orbits\footnote{\url{https://www.minorplanetcenter.net/iau/MPCORB/NEA.txt}}, as well as the NEO confirmation page (NEOCP\footnote{\url{https://www.minorplanetcenter.net/iau/NEO/toconfirm_tabular.html}}), which lists potential NEOs that should be prioritised for additional observations by the NEO follow-up community. An object is only listed on the NEOCP when it has a high probability of being an NEO. This probability is quantified using the \dig{} code, which assigns a score between 0 and 100 and only objects with a score of 65 or more are listed on the page \citep{Keys+2019}. Currently, on average around two dozen objects are added to the NEOCP on each night.
 
+The Legacy Survey of Space and Time (LSST) will rapidly increase the rate at which NEOs are discovered and sent to the NEOCP. \todo{need more details}
+
+Given this increased discovery rate, if LSST operates in the same way as current telescopes that work on NEO discovery, the number of objects submitted to the NEOCP will increase by several orders of magnitude. This will make it difficult for the follow-up community to prioritise particular objects and may lead to some objects being missed. However, many of the objects that LSST observes will be re-observed and discovered by LSST alone, though there will still be a sizeable fraction of objects that require community follow-up. It is therefore important to identify this fraction so that the follow-up community can effectively prioritise observations.
+
+This paper quanitifies the impact of LSST on the NEOCP and the fraction of objects that require community follow-up.
+
+Our paper is structured as follows. In Section~\ref{sec:method}, we describe the methods for creating a hybrid catalogue of objects, simulating LSST observations and calculating \dig{} scores for the NEOCP. \todo{Outline rest of paper}
+
 \section{Method} \label{sec:method}
 In order to make predictions for the NEOCP in the era of LSST, we make simulated observations of a catalogue of solar system objects that takes into account currently known objects. We then use the \dig{} code to calculate NEO scores for each object and use these values to make predictions for the NEOCP. In the subsections below we explain each of these steps in more details.
 
