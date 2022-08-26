@@ -243,6 +243,7 @@ def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, orbits, night,
         DataFrame of fields (see `get_LSST_schedule`)
     """
     # check that there were observations in this night
+    orbits["night"] = (orbits["mjd_utc"] - 0.5).astype(int) - 59638
     mask = orbits["night"] == night
     if not np.any(mask):
         print("Warning: No observations in this night")
