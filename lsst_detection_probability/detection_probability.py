@@ -3,6 +3,9 @@ from astropy.time import Time
 from astropy.coordinates import SkyCoord
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
+from matplotlib.collections import PatchCollection
 
 from variant_orbits import variant_orbit_ephemerides
 from scheduling import get_LSST_schedule
@@ -84,11 +87,11 @@ def get_detection_probabilities(night_start, path="../neocp/neo/", detection_win
     # calculate detection probabilities
     probs = np.zeros(len(unique_objs))
     for i, hex_id in enumerate(unique_objs):
-        probs[i] = probability_from_id(hex_id, sorted_obs, distances=np.logspace(-1, 1.1, 50) * u.AU,
-                                       radial_velocities=np.linspace(-100, 100, 10) * u.km / u.s,
-                                       first_visit_times=first_visit_times, full_schedule=full_schedule,
-                                       night_lengths=night_lengths, night_list=night_list,
-                                       detection_window=detection_window, min_nights=min_nights)
+        probs[i], _, _ = probability_from_id(hex_id, sorted_obs, distances=np.logspace(-1, 1.1, 50) * u.AU,
+                                             radial_velocities=np.linspace(-100, 100, 10) * u.km / u.s,
+                                             first_visit_times=first_visit_times, full_schedule=full_schedule,
+                                             night_lengths=night_lengths, night_list=night_list,
+                                             detection_window=detection_window, min_nights=min_nights)
         print(hex_id, probs[i])
 
     return probs, will_be_detected
@@ -226,50 +229,62 @@ def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, first_
                         init = night
 
     # return the fraction of orbits that are findable
-    return findable.astype(int).sum() / N_ORB
+    return findable.astype(int).sum() / N_ORB, reachable_schedule, orbits
 
 
-def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, orbits, night, colour_by="distance", lims="schedule"):
-    """Plot LSST schedule up using the dataframe containing fields. Each is assumed to be a circle of radius
-    2.1 degrees for simplicity.
+def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, orbits, night,
+                                   colour_by="distance", lims="schedule", field_radius=2.1):
+    """Plot LSST schedule up using the dataframe containing fields. Each is assumed to be a circle for
+    simplicity.
 
     Parameters
     ----------
     df : `pandas DataFrame`
         DataFrame of fields (see `get_LSST_schedule`)
     """
-    mask = orbits["night"] == night    
-    if len(mask[mask]) == 0:
+    # check that there were observations in this night
+    mask = orbits["night"] == night
+    if not np.any(mask):
         print("Warning: No observations in this night")
         return
 
+    # create the figure with equal aspect ratio
     fig, ax = plt.subplots(figsize=(20, 10))
-    
+    ax.set_aspect("equal")
+
+    # plot each schedule with difference colours and widths
     for table, colour, lw in zip([schedule, reachable_schedule], ["black", "tab:green"], [1, 2]):
-        ra_field, dec_field = table["fieldRA"][table["night"] == night], table["fieldDec"][table["night"] == night]
-        patches = [plt.Circle(center, 2.1) for center in np.transpose([ra_field, dec_field])]
+        ra_field = table["fieldRA"][table["night"] == night]
+        dec_field = table["fieldDec"][table["night"] == night]
+        patches = [plt.Circle(center, field_radius) for center in np.transpose([ra_field, dec_field])]
         coll = PatchCollection(patches, edgecolors=colour, facecolors="none", linewidths=lw)
         ax.add_collection(coll)
-    
+
+    # if colouring by orbit then just use a plain old colourbar
     if colour_by == "orbit":
-        ax.scatter(orbits["RA_deg"][mask], orbits["Dec_deg"][mask], s=0.5, alpha=1, c=orbits["orbit_id"][mask])
+        ax.scatter(orbits["RA_deg"][mask], orbits["Dec_deg"][mask],
+                   s=0.5, alpha=1, c=orbits["orbit_id"][mask])
+    # if distance then use a log scale for the colourbar
     elif colour_by == "distance":
-        scatter = ax.scatter(orbits["RA_deg"][mask], orbits["Dec_deg"][mask], s=0.5, alpha=1, c=orbits["r_au"][mask],
-                             norm=LogNorm(vmin=1e-1, vmax=2e1), cmap="magma")
+        scatter = ax.scatter(orbits["RA_deg"][mask], orbits["Dec_deg"][mask], s=0.5, alpha=1,
+                             c=orbits["r_au"][mask], norm=LogNorm(vmin=1e-1, vmax=2e1), cmap="magma")
         fig.colorbar(scatter, label="Distance [AU]")
     else:
         raise ValueError("Invalid value for colour_by")
-    
-    ax.set_aspect("equal")
 
+    # if limited by the schedule then adjust the limits
     if lims in ["schedule", "reachable"]:
         table = schedule if lims == "schedule" else reachable_schedule
-        ax.set_xlim(table[table["night"] == night]["fieldRA"].min() - 3, table[table["night"] == night]["fieldRA"].max() + 3)
-        ax.set_ylim(table[table["night"] == night]["fieldDec"].min() - 3, table[table["night"] == night]["fieldDec"].max() + 3)
+        ax.set_xlim(table[table["night"] == night]["fieldRA"].min() - 3,
+                    table[table["night"] == night]["fieldRA"].max() + 3)
+        ax.set_ylim(table[table["night"] == night]["fieldDec"].min() - 3,
+                    table[table["night"] == night]["fieldDec"].max() + 3)
 
+    # label the axes, add a grid, show the plot
     ax.set_xlabel("Right Ascension [deg]")
     ax.set_ylabel("Declination [deg]")
-    
     ax.grid()
 
     plt.show()
+
+    return fig, ax
