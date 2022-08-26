@@ -227,3 +227,49 @@ def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, first_
 
     # return the fraction of orbits that are findable
     return findable.astype(int).sum() / N_ORB
+
+
+def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, orbits, night, colour_by="distance", lims="schedule"):
+    """Plot LSST schedule up using the dataframe containing fields. Each is assumed to be a circle of radius
+    2.1 degrees for simplicity.
+
+    Parameters
+    ----------
+    df : `pandas DataFrame`
+        DataFrame of fields (see `get_LSST_schedule`)
+    """
+    mask = orbits["night"] == night    
+    if len(mask[mask]) == 0:
+        print("Warning: No observations in this night")
+        return
+
+    fig, ax = plt.subplots(figsize=(20, 10))
+    
+    for table, colour, lw in zip([schedule, reachable_schedule], ["black", "tab:green"], [1, 2]):
+        ra_field, dec_field = table["fieldRA"][table["night"] == night], table["fieldDec"][table["night"] == night]
+        patches = [plt.Circle(center, 2.1) for center in np.transpose([ra_field, dec_field])]
+        coll = PatchCollection(patches, edgecolors=colour, facecolors="none", linewidths=lw)
+        ax.add_collection(coll)
+    
+    if colour_by == "orbit":
+        ax.scatter(orbits["RA_deg"][mask], orbits["Dec_deg"][mask], s=0.5, alpha=1, c=orbits["orbit_id"][mask])
+    elif colour_by == "distance":
+        scatter = ax.scatter(orbits["RA_deg"][mask], orbits["Dec_deg"][mask], s=0.5, alpha=1, c=orbits["r_au"][mask],
+                             norm=LogNorm(vmin=1e-1, vmax=2e1), cmap="magma")
+        fig.colorbar(scatter, label="Distance [AU]")
+    else:
+        raise ValueError("Invalid value for colour_by")
+    
+    ax.set_aspect("equal")
+
+    if lims in ["schedule", "reachable"]:
+        table = schedule if lims == "schedule" else reachable_schedule
+        ax.set_xlim(table[table["night"] == night]["fieldRA"].min() - 3, table[table["night"] == night]["fieldRA"].max() + 3)
+        ax.set_ylim(table[table["night"] == night]["fieldDec"].min() - 3, table[table["night"] == night]["fieldDec"].max() + 3)
+
+    ax.set_xlabel("Right Ascension [deg]")
+    ax.set_ylabel("Declination [deg]")
+    
+    ax.grid()
+
+    plt.show()
