@@ -1,4 +1,4 @@
-\documentclass[twocolumn, twocolappendix]{aastex631}
+\documentclass[twocolumn]{aastex631}
 \received{\today}
 \shorttitle{NEOCP in Era of LSST}
 \graphicspath{{figures/}}
@@ -35,7 +35,7 @@
 
 \begin{document}
 
-\title{The NEOCP in the Era of LSST}
+\title{{\Large The Sky is Falling?}\\The NEOCP in the Era of LSST}
 
 % affiliations
 \newcommand{\UW}{Department of Astronomy, University of Washington, Seattle, WA, 98195}
@@ -61,21 +61,23 @@
 \keywords{Near-Earth objects, Asteroids, Solar system, Small Solar System bodies, Surveys}
 
 \section{Introduction} \label{sec:intro}
-\todo{}
-\placeholder{1-9}
+Near-Earth Objects (NEOs) are objects that may come close enough to the Earth that small perturbations in their orbit lead to a collision course. A simple definition for NEOs is that there are small solar system bodies that have a perihelion less than $1.3 \unit{AU}$ \needcite{}. Given the threat posed by these objects, it is therefore critical that we catalogue and determine the orbit of NEOs.
+
+The Minor Planet Center maintains a catalogue of known NEOs and their orbits\footnote{\url{https://www.minorplanetcenter.net/iau/MPCORB/NEA.txt}}, as well as the NEO confirmation page (NEOCP\footnote{\url{https://www.minorplanetcenter.net/iau/NEO/toconfirm_tabular.html}}), which lists potential NEOs that should be prioritised for additional observations by the NEO follow-up community. An object is only listed on the NEOCP when it has a high probability of being an NEO. This probability is quantified using the \dig{} code, which assigns a score between 0 and 100 and only objects with a score of 65 or more are listed on the page \citep{Keys+2019}. Currently, on average around two dozen objects are added to the NEOCP on each night.
+
+The Legacy Survey of Space and Time (LSST) will rapidly increase the rate at which NEOs are discovered and sent to the NEOCP. \todo{need more details}
+
+Given this increased discovery rate, if LSST operates in the same way as current telescopes that work on NEO discovery, the number of objects submitted to the NEOCP will increase by several orders of magnitude. This will make it difficult for the follow-up community to prioritise particular objects and may lead to some objects being missed. However, many of the objects that LSST observes will be re-observed and discovered by LSST alone, though there will still be a sizeable fraction of objects that require community follow-up. It is therefore important to identify this fraction so that the follow-up community can effectively prioritise observations.
+
+This paper quanitifies the impact of LSST on the NEOCP and the fraction of objects that require community follow-up.
+
+Our paper is structured as follows. In Section~\ref{sec:method}, we describe the methods for creating a hybrid catalogue of objects, simulating LSST observations and calculating \dig{} scores for the NEOCP. \todo{Outline rest of paper}
 
 \section{Method} \label{sec:method}
 In order to make predictions for the NEOCP in the era of LSST, we make simulated observations of a catalogue of solar system objects that takes into account currently known objects. We then use the \dig{} code to calculate NEO scores for each object and use these values to make predictions for the NEOCP. In the subsections below we explain each of these steps in more details.
 
 \subsection{Hybrid Catalogue Pipeline}\label{sec:hybrid}
 Most studies that make predictions for LSST use a synthetic catalogue of solar system objects that doesn't account for prior observations \needcite{}. In reality, we have already detected more than a million objects in the solar system and this number will continue to grow until LSST comes online. This means that, current predictions of detection rates will be inflated since a fraction of ``new'' detections may already be known. Therefore, for this paper we created ``hybrid'' catalogue that combines a synthetic catalogue with all known observations, whilst keeping the population distributions relatively unchanged.
-
-\begin{figure*}[htb]
-    \centering
-    \includegraphics[width=\textwidth]{hybrid_vs_s3m_distributions.pdf}
-    \caption{A comparison of the parameter distributions of \sss{} \citep{Grav+2011} and the hybrid catalogue we created.}
-    \label{fig:hybrid_vs_s3m_dists}
-\end{figure*}
 
 We created the hybrid catalogue to be dynamic, such that we can run a single pipeline to merge in an updated version of \mpco{} as more objects are discovered in the time until LSST comes online. All code to reproduce this hybrid catalogue is open-source and available on GitHub\footnote{\url{https://github.com/dirac-institute/hybrid_sso_catalogue/tree/main/hybridcat/hybridcat}}.
 
@@ -89,12 +91,7 @@ The general idea for the merging algorithm is to inject each object from \mpco{}
 
 We split each catalogue into bins of absolute magnitude linearly spaced from $-2$ to $28$ and perform the merge algorithm on each bin separately. For each bin we build a K-D trees for both catalogues based on the positions ($x, y, z$) of objects. For every \mpco{} object we query the \sss{} tree for the nearest $100$ objects up to a maximum distance of $0.1 \unit{AU}$, excluding any that have already been matched to a different real object. From these remaining nearest neighbours, we select the \sss{} object with the closest velocity as the matched object. If there were no remaining neighbours, either because no synthetic objects were nearby or because all nearby objects had already been matched, then we directly add this real object without replacing a synthetic one.
 
-To complete the merging process, we compile the matched object IDs and delete them from \sss{}. We then add the entirety of \mpco{} to the remaining catalogue, resulting in a hybrid catalogue.
-
-\subsubsection{Assessing quality of hybrid catalogue}
-It is essential that the underlying distributions of the hybrid catalogue do not differ significantly from \sss{} so that we still accurately reproduce the solar system. In Figure~\ref{fig:hybrid_vs_s3m_dists}, we show the distributions of the absolute magnitude and six orbital elements in both the hybrid catalogue and \sss{}. It is evident that the distributions are essentially identical.
-
-As a further check, we compared \mpco{} to the objects that were removed from \sss{}, since these should have nearly identical distributions. In Figure~\ref{fig:density_compare}, we show a comparison of the densities for the heliocentric $x$ and $y$ and it is clear that these distributions are left unchanged in the hybrid catalogue.
+To complete the merging process, we compile the matched object IDs and delete them from \sss{}. We then add the entirety of \mpco{} to the remaining catalogue, resulting in a hybrid catalogue. We assess the quality of the hybrid catalogue in Appendix~\ref{app:hybrid_quality}.
 
 \subsection{Simulated Observations}
 
@@ -200,18 +197,25 @@ where $\theta_{i, j}$ is a heaviside step function that is 1 if the orbit corres
 
 \allowdisplaybreaks
 \appendix
-\section{Extra Figures}\label{app:extra_figs}
+
+\section{Assessing quality of hybrid catalogue}\label{app:hybrid_quality}
+
+\begin{figure*}[htb]
+    \centering
+    \includegraphics[width=\textwidth]{hybrid_vs_s3m_distributions.pdf}
+    \caption{A comparison of the parameter distributions of \sss{} \citep{Grav+2011} and the hybrid catalogue we created.}
+    \label{fig:hybrid_vs_s3m_dists}
+\end{figure*}
+
+It is essential that the underlying distributions of the hybrid catalogue do not differ significantly from \sss{} so that we still accurately reproduce the solar system. In Figure~\ref{fig:hybrid_vs_s3m_dists}, we show the distributions of the absolute magnitude and six orbital elements in both the hybrid catalogue and \sss{}. It is evident that the distributions are essentially identical.
+
+As a further check, we compared \mpco{} to the objects that were removed from \sss{}, since these should have nearly identical distributions. In Figure~\ref{fig:density_compare}, we show a comparison of the densities for the heliocentric $x$ and $y$ and it is clear that these distributions are left unchanged in the hybrid catalogue.
 \begin{figure}[htb]
     \centering
-    \includegraphics[width=\columnwidth]{density_comparisons.pdf}
-    \caption{A comparison of the density of \mpco{} objects with those objects that were matched in \sss{} by our hybrid catalogue pipeline.}
+    \includegraphics[width=0.48\textwidth]{density_comparisons.pdf}
+    \raisebox{0.5\height}{\includegraphics[width=0.48\textwidth]{density_residuals.pdf}}
+    \caption{\textbf{Left:} A comparison of the density of \mpco{} objects with those objects that were matched in \sss{} by our hybrid catalogue pipeline. \textbf{Right:} Residuals between the two plots in the left panel.}
     \label{fig:density_compare}
-\end{figure}
-\begin{figure}[htb]
-    \centering
-    \includegraphics[width=\columnwidth]{density_residuals.pdf}
-    \caption{}
-    \label{fig:density_residuals}
 \end{figure}
 
 \end{document}
