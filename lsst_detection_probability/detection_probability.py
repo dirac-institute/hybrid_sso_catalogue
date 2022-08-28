@@ -310,9 +310,9 @@ def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, orbits, truth, 
 
         scatter = ax.scatter(orbits["RA_deg"][mask], orbits["Dec_deg"][mask], s=s,
                              c=log_dist_from_earth[mask], norm=norm, cmap="magma_r")
-        fig.colorbar(scatter, label="Topocentric Distance [AU]")
+        fig.colorbar(scatter, label="Log Topocentric Distance [AU]")
 
-        scatter = ax.scatter(truth["RA_deg"][mask], truth["Dec_deg"][mask], s=s * 10, c="tab:red")
+        scatter = ax.scatter(truth["RA_deg"][mask], truth["Dec_deg"][mask], s=s * 2, c="tab:red", marker="x")
     else:
         raise ValueError("Invalid value for colour_by")
 
@@ -328,6 +328,13 @@ def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, orbits, truth, 
                     schedule["fieldRA"].max() + 3)
         ax.set_ylim(schedule["fieldDec"].min() - 3,
                     schedule["fieldDec"].max() + 3)
+    elif lims == "orbits":
+        ax.set_xlim(orbits["RA_deg"][mask].min() - 3,
+                    orbits["RA_deg"][mask].max() + 3)
+        ax.set_ylim(orbits["Dec_deg"][mask].min() - 3,
+                    orbits["Dec_deg"][mask].max() + 3)
+    else:
+        raise ValueError("Invalid input for lims")
 
     # label the axes, add a grid, show the plot
     ax.set_xlabel("Right Ascension [deg]")
