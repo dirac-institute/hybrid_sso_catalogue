@@ -308,6 +308,11 @@ def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, orbits, truth, 
         boundaries = np.arange(-1, 1.1 + 0.2, 0.2)
         norm = BoundaryNorm(boundaries, plt.cm.magma_r.N, clip=True)
 
+        for orb in orbits[mask]["orbit_id"].unique():
+            more_mask = orbits[mask]["orbit_id"] == orb
+            ax.plot(orbits["RA_deg"][mask][more_mask], orbits["Dec_deg"][mask][more_mask],
+                    color=plt.cm.magma_r(norm(log_dist_from_earth[mask][more_mask][0])))
+
         scatter = ax.scatter(orbits["RA_deg"][mask], orbits["Dec_deg"][mask], s=s,
                              c=log_dist_from_earth[mask], norm=norm, cmap="magma_r")
         fig.colorbar(scatter, label="Log Topocentric Distance [AU]")
