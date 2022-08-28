@@ -4,7 +4,7 @@ from astropy.coordinates import SkyCoord
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.colors import LogNorm
+from matplotlib.colors import LogNorm, BoundaryNorm
 from matplotlib.collections import PatchCollection
 
 from variant_orbits import variant_orbit_ephemerides
@@ -267,12 +267,15 @@ def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, orbits, night,
                    s=s, alpha=1, c=orbits["orbit_id"][mask])
     # if distance then use a log scale for the colourbar
     elif colour_by == "distance":
-        dist_from_earth = np.sqrt((orbits["obs_x"] - orbits["obj_x"])**2
-                                  + (orbits["obs_y"] - orbits["obj_y"])**2
-                                  + (orbits["obs_z"] - orbits["obj_z"])**2)
+        log_dist_from_earth = np.log10(np.sqrt((orbits["obs_x"] - orbits["obj_x"])**2
+                                       + (orbits["obs_y"] - orbits["obj_y"])**2
+                                       + (orbits["obs_z"] - orbits["obj_z"])**2))
+        
+        boundaries = np.arange(-1, 1.1 + 0.2, 0.2)
+        norm = BoundaryNorm(boundaries, plt.cm.magma_r.N, clip=True)
 
         scatter = ax.scatter(orbits["RA_deg"][mask], orbits["Dec_deg"][mask], s=s, alpha=1,
-                             c=dist_from_earth[mask], norm=LogNorm(vmin=1e-1, vmax=2e1), cmap="magma")
+                             c=log_dist_from_earth[mask], norm=norm, cmap="magma_r")
         fig.colorbar(scatter, label="Topocentric Distance [AU]")
     else:
         raise ValueError("Invalid value for colour_by")
