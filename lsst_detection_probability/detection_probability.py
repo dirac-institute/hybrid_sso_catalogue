@@ -87,7 +87,7 @@ def get_detection_probabilities(night_start, path="../neocp/neo/", detection_win
     # calculate detection probabilities
     probs = np.zeros(len(unique_objs))
     for i, hex_id in enumerate(unique_objs):
-        probs[i], _, _ = probability_from_id(hex_id, sorted_obs, distances=np.logspace(-1, 1.1, 50) * u.AU,
+        probs[i], _, _ = probability_from_id(hex_id, sorted_obs, distances=np.linspace(0.1, 2, 50) * u.AU,
                                              radial_velocities=np.linspace(-100, 100, 10) * u.km / u.s,
                                              first_visit_times=first_visit_times, full_schedule=full_schedule,
                                              night_lengths=night_lengths, night_list=night_list,
@@ -267,9 +267,13 @@ def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, orbits, night,
                    s=0.5, alpha=1, c=orbits["orbit_id"][mask])
     # if distance then use a log scale for the colourbar
     elif colour_by == "distance":
+        dist_from_earth = np.sqrt((orbits["obs_x"] - orbits["obj_x"])**2
+                                  + (orbits["obs_y"] - orbits["obj_y"])**2
+                                  + (orbits["obs_z"] - orbits["obj_z"])**2)
+
         scatter = ax.scatter(orbits["RA_deg"][mask], orbits["Dec_deg"][mask], s=0.5, alpha=1,
-                             c=orbits["r_au"][mask], norm=LogNorm(vmin=1e-1, vmax=2e1), cmap="magma")
-        fig.colorbar(scatter, label="Distance [AU]")
+                             c=dist_from_earth[mask], norm=LogNorm(vmin=1e-1, vmax=2e1), cmap="magma")
+        fig.colorbar(scatter, label="Topocentric Distance [AU]")
     else:
         raise ValueError("Invalid value for colour_by")
 
