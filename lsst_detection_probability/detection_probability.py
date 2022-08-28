@@ -66,9 +66,12 @@ def get_detection_probabilities(night_start, path="../neocp/neo/", detection_win
             night_lengths[i] = full_schedule[mask].iloc[-1]["observationStartMJD"]\
                 - full_schedule[mask].iloc[0]["observationStartMJD"]
 
-    # get the first visit from each night
+    # get the first/last visit from each night
     night_transition = full_schedule["night"] != full_schedule["previousNight"]
     first_visit_times = full_schedule[night_transition]["observationStartMJD"].values
+
+    last_times_ind = np.array(list(full_schedule[night_transition].index[1:]) + [len(full_schedule)]) - 1
+    last_visit_times = full_schedule.loc[last_times_ind]["observationStartMJD"].values
 
     file = find_first_file(night_list)
     visit_file = pd.read_hdf(path + f"filtered_visit_{file:03d}.h5")
