@@ -233,7 +233,7 @@ def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, first_
 
 
 def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, orbits, night,
-                                   colour_by="distance", lims="schedule", field_radius=2.1, s=5):
+                                   colour_by="distance", lims="full_schedule", field_radius=2.1, s=5):
     """Plot LSST schedule up using the dataframe containing fields. Each is assumed to be a circle for
     simplicity.
 
@@ -284,6 +284,11 @@ def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, orbits, night,
                     table[table["night"] == night]["fieldRA"].max() + 3)
         ax.set_ylim(table[table["night"] == night]["fieldDec"].min() - 3,
                     table[table["night"] == night]["fieldDec"].max() + 3)
+    elif lims == "full_schedule":
+        ax.set_xlim(schedule["fieldRA"].min() - 3,
+                    schedule["fieldRA"].max() + 3)
+        ax.set_ylim(schedule["fieldDec"].min() - 3,
+                    schedule["fieldDec"].max() + 3)
 
     # label the axes, add a grid, show the plot
     ax.set_xlabel("Right Ascension [deg]")
