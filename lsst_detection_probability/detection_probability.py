@@ -265,7 +265,7 @@ def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, first_
     return findable.astype(int).sum() / N_ORB, reachable_schedule, orbits
 
 
-def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, orbits, night,
+def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, orbits, truth, night,
                                    colour_by="distance", lims="full_schedule", field_radius=2.1, s=5):
     """Plot LSST schedule up using the dataframe containing fields. Each is assumed to be a circle for
     simplicity.
@@ -298,18 +298,21 @@ def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, orbits, night,
     if colour_by == "orbit":
         ax.scatter(orbits["RA_deg"][mask], orbits["Dec_deg"][mask],
                    s=s, alpha=1, c=orbits["orbit_id"][mask])
+        scatter = ax.scatter(truth["RA_deg"][mask], truth["Dec_deg"][mask], s=s * 10, c="tab:red")
     # if distance then use a log scale for the colourbar
     elif colour_by == "distance":
         log_dist_from_earth = np.log10(np.sqrt((orbits["obs_x"] - orbits["obj_x"])**2
                                        + (orbits["obs_y"] - orbits["obj_y"])**2
                                        + (orbits["obs_z"] - orbits["obj_z"])**2))
-        
+
         boundaries = np.arange(-1, 1.1 + 0.2, 0.2)
         norm = BoundaryNorm(boundaries, plt.cm.magma_r.N, clip=True)
 
-        scatter = ax.scatter(orbits["RA_deg"][mask], orbits["Dec_deg"][mask], s=s, alpha=1,
+        scatter = ax.scatter(orbits["RA_deg"][mask], orbits["Dec_deg"][mask], s=s,
                              c=log_dist_from_earth[mask], norm=norm, cmap="magma_r")
         fig.colorbar(scatter, label="Topocentric Distance [AU]")
+
+        scatter = ax.scatter(truth["RA_deg"][mask], truth["Dec_deg"][mask], s=s * 10, c="tab:red")
     else:
         raise ValueError("Invalid value for colour_by")
 
