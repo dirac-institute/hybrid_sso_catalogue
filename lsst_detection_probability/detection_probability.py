@@ -7,6 +7,10 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm, BoundaryNorm
 from matplotlib.collections import PatchCollection
 
+import thor
+from thor.backend import PYOORB
+backend = PYOORB()
+
 from variant_orbits import variant_orbit_ephemerides
 from scheduling import get_LSST_schedule
 
@@ -98,6 +102,32 @@ def get_detection_probabilities(night_start, path="../neocp/neo/", detection_win
         print(hex_id, probs[i])
 
     return probs, will_be_detected
+
+
+def first_last_pos_from_id(hex_id, sorted_obs, s3m_cart, distances, radial_velocities,
+                           first_visit_times, last_visit_times):
+    rows = sorted_obs[sorted_obs["hex_id"] == hex_id]
+
+    eph_times = Time(np.sort(np.concatenate([first_visit_times, last_visit_times])), format="mjd")
+
+    orbits = variant_orbit_ephemerides(ra=rows.iloc[0]["AstRA(deg)"] * u.deg,
+                                       dec=rows.iloc[0]["AstDec(deg)"] * u.deg,
+                                       ra_end=rows.iloc[-1]["AstRA(deg)"] * u.deg,
+                                       dec_end=rows.iloc[-1]["AstDec(deg)"] * u.deg,
+                                       delta_t=(rows.iloc[-1]["FieldMJD"] - rows.iloc[0]["FieldMJD"]) * u.day,
+                                       obstime=Time(rows.iloc[0]["FieldMJD"], format="mjd"),
+                                       distances=distances,
+                                       radial_velocities=radial_velocities,
+                                       eph_times=eph_times)
+    orbits["orbit_id"] = orbits["orbit_id"].astype(int)
+
+    item = s3m_cart[s3m_cart["hex_id"] == hex_id]
+    orb_class = thor.Orbits(orbits=np.atleast_2d(np.concatenate(([item["x"], item["y"], item["z"]],
+                                                                 [item["vx"], item["vy"], item["vz"]]))).T,
+                            epochs=Time(item["t_0"], format="mjd"))
+    truth = backend.generateEphemeris(orbits=orb_class, observers={"I11": Time(eph_times, format="mjd")})
+
+    return orbits, truth
 
 
 def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, first_visit_times,
