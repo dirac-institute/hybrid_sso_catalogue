@@ -57,7 +57,7 @@ def get_detection_probabilities(night_start, path="../neocp/neo/", detection_win
     shifted = schedule.shift()
     shifted = shifted.drop("observationStartMJD", axis=1)
     shifted = shifted.rename(columns={"fieldRA": "previousFieldRA", "fieldDec": "previousFieldDec",
-                                      "night": "previousNight"})
+                                      "night": "previousNight", "filter": "previousFilter", "fiveSigmaDepth": "previousFiveSigmaDepth"})
     full_schedule = pd.merge(schedule, shifted, left_index=True, right_index=True)
 
     # calculate the length of each night in days
@@ -266,7 +266,7 @@ def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, first_
 
 
 def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, orbits, truth, night,
-                                   colour_by="distance", lims="full_schedule", field_radius=2.1, s=10,
+                                   colour_by="distance", lims="full_schedule", field_radius=2.1, s=10, filter_mask="all",
                                    fig=None, ax=None, show=True, ax_labels=True, cbar=True):
     """Plot LSST schedule up using the dataframe containing fields. Each is assumed to be a circle for
     simplicity.
@@ -295,11 +295,29 @@ def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, orbits, truth, 
 
     # plot each schedule with difference colours and widths
     for table, colour, lw in zip([schedule, reachable_schedule], ["black", "tab:green"], [1, 2]):
-        ra_field = table["fieldRA"][table["night"] == night]
-        dec_field = table["fieldDec"][table["night"] == night]
+        if filter_mask != "all":
+            table_mask = table["filter"] == filter_mask
+        else:
+            table_mask = np.repeat(True, len(table))
+           
+        table_mask &= table["night"] == night
+            
+        ra_field = table["fieldRA"][table_mask]
+        dec_field = table["fieldDec"][table_mask]
         patches = [plt.Circle(center, field_radius) for center in np.transpose([ra_field, dec_field])]
         coll = PatchCollection(patches, edgecolors=colour, facecolors="none", linewidths=lw)
         ax.add_collection(coll)
+        
+        text = {}
+        for _, visit in table[table_mask].iterrows():
+            xy=(visit["fieldRA"], visit["fieldDec"])
+            if xy in text:
+                text[xy] += f'\n{visit["filter"]}{visit["fiveSigmaDepth"]:.2f}'
+            else:
+                text[xy] = f'{visit["filter"]}{visit["fiveSigmaDepth"]:.2f}'
+            
+        for xy, label in text.items():
+            ax.annotate(label, xy=xy, ha="center", va="center", fontsize=8)
 
     # if colouring by orbit then just use a plain old colourbar
     if colour_by == "orbit":

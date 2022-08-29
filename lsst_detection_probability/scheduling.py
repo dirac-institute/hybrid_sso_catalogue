@@ -20,7 +20,7 @@ params = {'figure.figsize': (12, 8),
 plt.rcParams.update(params)
 
 
-def get_LSST_schedule(night, night_zero=59638, fields=["fieldRA", "fieldDec", "observationStartMJD"]):
+def get_LSST_schedule(night, night_zero=59638, fields=["fieldRA", "fieldDec", "observationStartMJD", "filter", "fiveSigmaDepth"]):
     """Get the schedule for LSST (where it will point at what time)
 
     Parameters
