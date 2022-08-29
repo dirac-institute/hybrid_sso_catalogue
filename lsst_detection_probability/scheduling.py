@@ -20,7 +20,8 @@ params = {'figure.figsize': (12, 8),
 plt.rcParams.update(params)
 
 
-def get_LSST_schedule(night, night_zero=59638, fields=["fieldRA", "fieldDec", "observationStartMJD", "filter", "fiveSigmaDepth"]):
+def get_LSST_schedule(night, night_zero=59638,
+                      fields=["fieldRA", "fieldDec", "observationStartMJD", "filter", "fiveSigmaDepth"]):
     """Get the schedule for LSST (where it will point at what time)
 
     Parameters
@@ -28,7 +29,8 @@ def get_LSST_schedule(night, night_zero=59638, fields=["fieldRA", "fieldDec", "o
     night : `int`
         Which night you want the schedule for
     fields : `list`, optional
-        Fields you want from the database, by default ["fieldRA", "fieldDec", "observationStartMJD"]
+        Fields you want from the database, by default ["fieldRA", "fieldDec", "observationStartMJD",
+        "filter", "fiveSigmaDepth"]
 
     Returns
     -------
@@ -37,7 +39,7 @@ def get_LSST_schedule(night, night_zero=59638, fields=["fieldRA", "fieldDec", "o
     """
     con = sqlite3.connect('/epyc/projects/jpl_survey_sim/10yrs/opsims/march_start_v2.1_10yrs.db')
     cur = con.cursor()
-    
+
     if isinstance(night, int):
         res = cur.execute(f"select {','.join(fields)} from observations where night={night + 1}")
     else:
@@ -45,7 +47,7 @@ def get_LSST_schedule(night, night_zero=59638, fields=["fieldRA", "fieldDec", "o
     df = pd.DataFrame(res.fetchall(), columns=fields)
 
     con.close()
-    
+
     df["night"] = (df["observationStartMJD"] - 0.5).astype(int) - night_zero
 
     return df

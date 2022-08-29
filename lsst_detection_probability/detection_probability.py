@@ -56,9 +56,8 @@ def get_detection_probabilities(night_start, path="../neocp/neo/", detection_win
     # offset the schedule by one row and re-merge to get the previous night column
     shifted = schedule.shift()
     shifted = shifted.drop("observationStartMJD", axis=1)
-    shifted = shifted.rename(columns={"fieldRA": "previousFieldRA", "fieldDec": "previousFieldDec",
-                                      "night": "previousNight", "filter": "previousFilter", "fiveSigmaDepth": "previousFiveSigmaDepth"})
-    full_schedule = pd.merge(schedule, shifted, left_index=True, right_index=True)
+    shifted = shifted.rename(columns={"night": "previousNight"})
+    full_schedule = pd.merge(schedule, shifted["previousNight"], left_index=True, right_index=True)
 
     # calculate the length of each night in days
     night_lengths = np.zeros(detection_window)
@@ -266,7 +265,8 @@ def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, first_
 
 
 def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, orbits, truth, night,
-                                   colour_by="distance", lims="full_schedule", field_radius=2.1, s=10, filter_mask="all",
+                                   colour_by="distance", lims="full_schedule", field_radius=2.1, s=10,
+                                   filter_mask="all", show_mag_labels=False,
                                    fig=None, ax=None, show=True, ax_labels=True, cbar=True):
     """Plot LSST schedule up using the dataframe containing fields. Each is assumed to be a circle for
     simplicity.
@@ -295,29 +295,35 @@ def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, orbits, truth, 
 
     # plot each schedule with difference colours and widths
     for table, colour, lw in zip([schedule, reachable_schedule], ["black", "tab:green"], [1, 2]):
+        # ensure you only get the current night
+        table_mask = table["night"] == night
+
+        # filter table (pun intended)
         if filter_mask != "all":
-            table_mask = table["filter"] == filter_mask
-        else:
-            table_mask = np.repeat(True, len(table))
-           
-        table_mask &= table["night"] == night
-            
+            table_mask &= table["filter"] == filter_mask
+
         ra_field = table["fieldRA"][table_mask]
         dec_field = table["fieldDec"][table_mask]
         patches = [plt.Circle(center, field_radius) for center in np.transpose([ra_field, dec_field])]
         coll = PatchCollection(patches, edgecolors=colour, facecolors="none", linewidths=lw)
         ax.add_collection(coll)
-        
-        text = {}
-        for _, visit in table[table_mask].iterrows():
-            xy=(visit["fieldRA"], visit["fieldDec"])
-            if xy in text:
-                text[xy] += f'\n{visit["filter"]}{visit["fiveSigmaDepth"]:.2f}'
-            else:
-                text[xy] = f'{visit["filter"]}{visit["fiveSigmaDepth"]:.2f}'
-            
-        for xy, label in text.items():
-            ax.annotate(label, xy=xy, ha="center", va="center", fontsize=8)
+
+        if show_mag_labels:
+            # build a dictionary of magnitude labels based on field position
+            mag_labels = {}
+            for _, visit in table[table_mask].iterrows():
+                # create tuple of position for dict key
+                xy = (visit["fieldRA"], visit["fieldDec"])
+
+                # append or create each dict item
+                if xy in mag_labels:
+                    mag_labels[xy] += f'\n{visit["filter"]}{visit["fiveSigmaDepth"]:.2f}'
+                else:
+                    mag_labels[xy] = f'{visit["filter"]}{visit["fiveSigmaDepth"]:.2f}'
+
+            # go through each unique field position and add an annotation
+            for xy, label in mag_labels.items():
+                ax.annotate(label, xy=xy, ha="center", va="center", fontsize=8)
 
     # if colouring by orbit then just use a plain old colourbar
     if colour_by == "orbit":
@@ -340,7 +346,7 @@ def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, orbits, truth, 
 
         scatter = ax.scatter(orbits["RA_deg"][mask], orbits["Dec_deg"][mask], s=s,
                              c=log_dist_from_earth[mask], norm=norm, cmap="plasma_r")
-        
+
         if cbar:
             fig.colorbar(scatter, label="Log Topocentric Distance [AU]")
 
@@ -352,10 +358,15 @@ def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, orbits, truth, 
     # if limited by the schedule then adjust the limits
     if lims in ["schedule", "reachable"]:
         table = schedule if lims == "schedule" else reachable_schedule
-        ax.set_xlim(table[table["night"] == night]["fieldRA"].min() - 3,
-                    table[table["night"] == night]["fieldRA"].max() + 3)
-        ax.set_ylim(table[table["night"] == night]["fieldDec"].min() - 3,
-                    table[table["night"] == night]["fieldDec"].max() + 3)
+        table_mask = table["night"] == night
+        if filter_mask != "all":
+            table_mask &= table["filter"] == filter_mask
+
+        if not table[table_mask].empty:
+            ax.set_xlim(table[table_mask]["fieldRA"].min() - 3,
+                        table[table_mask]["fieldRA"].max() + 3)
+            ax.set_ylim(table[table_mask]["fieldDec"].min() - 3,
+                        table[table_mask]["fieldDec"].max() + 3)
     elif lims == "full_schedule":
         ax.set_xlim(schedule["fieldRA"].min() - 3,
                     schedule["fieldRA"].max() + 3)
