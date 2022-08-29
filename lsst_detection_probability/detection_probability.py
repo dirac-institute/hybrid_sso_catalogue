@@ -13,6 +13,7 @@ backend = PYOORB()
 
 from variant_orbits import variant_orbit_ephemerides
 from scheduling import get_LSST_schedule
+from magnitudes import convert_colour_mags
 
 import sys
 sys.path.append("../neocp")
@@ -216,13 +217,28 @@ def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, first_
 
     # merge the orbits with the schedule
     joined_table = pd.merge(orbits, reachable_schedule, left_on="mjd_utc", right_on="observationStartMJD")
+    
+    # compute filter magnitudes
+    mag_in_filter = np.ones(len(joined_table)) * np.inf
+    for filter_letter in "ugrizy":
+        filter_mask = joined_table["filter"] == filter_letter
+        if not filter_mask.any():
+            continue
+        mag_in_filter[filter_mask] = convert_colour_mags(joined_table[filter_mask]["VMag"],
+                                                         out_colour=filter_letter,
+                                                         in_colour="V", convention="LSST",
+                                                         asteroid_type="C")
+    joined_table["mag_in_filter"] = mag_in_filter
 
     # mask those that are within the field (2.1 degrees)
     in_current_field = np.sqrt((joined_table["fieldRA"]
                                 - joined_table["RA_deg"])**2
                                + (joined_table["fieldDec"]
                                   - joined_table["Dec_deg"])**2) <= 2.1
-    joined_table["observed"] = in_current_field.astype(int)
+
+    bright_enough = joined_table["mag_in_filter"] < joined_table["fiveSigmaDepth"]
+
+    joined_table["observed"] = (in_current_field & bright_enough).astype(int)
 
     # remove any nights that don't match requirements (min_obs, min_arc, max_time)
     df = joined_table[joined_table["observed"] != 0]
