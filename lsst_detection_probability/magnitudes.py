@@ -70,7 +70,7 @@ def phi(ind, phase_angle):
     return np.exp(coeffs[0][ind - 1] * np.tan(phase_angle / 2)**(coeffs[1][ind - 1]))
 
 
-def convert_colour_mags(mag, in_colour, out_colour, convention="LSST", asteroid_type="C"):
+def convert_colour_mags(mag, out_colour, in_colour="V", convention="LSST", asteroid_type="C"):
     """Convert between different colours in magnitudes.
 
     MPC convention is here: https://minorplanetcenter.net/iau/info/BandConversion.txt
@@ -80,10 +80,10 @@ def convert_colour_mags(mag, in_colour, out_colour, convention="LSST", asteroid_
     ----------
     mag : `float/array`
         Input magnitude
-    in_colour : `str`
-        Colour of the input magnitude, one of (u, g, r, i, z, y)
     out_colour : `str`
-        Desired output colour, one of (u, g, r, i, z, y)
+        Desired output colour, one of (V, u, g, r, i, z, y)
+    in_colour : `str`
+        Colour of the input magnitude, one of (V, u, g, r, i, z, y), by default "V"
     convention : `str`, optional
         Which convention of colours to use, either MPC or LSST, by default "LSST"
     asteroid_type : `str`, optional
@@ -96,6 +96,7 @@ def convert_colour_mags(mag, in_colour, out_colour, convention="LSST", asteroid_
     """
     if convention == "MPC":
         colours = {
+            "V": 0,
             "u": +2.5,
             "g": -0.35,
             "r": +0.14,
@@ -106,6 +107,7 @@ def convert_colour_mags(mag, in_colour, out_colour, convention="LSST", asteroid_
     elif convention == "LSST":
         if asteroid_type == "C":
             colours = {
+                "V": 0,
                 "u": +1.53,
                 "g": +0.28,
                 "r": -0.18,
@@ -115,6 +117,7 @@ def convert_colour_mags(mag, in_colour, out_colour, convention="LSST", asteroid_
             }
         elif asteroid_type == "S":
             colours = {
+                "V": 0,
                 "u": +1.82,
                 "g": +0.37,
                 "r": -0.26,
