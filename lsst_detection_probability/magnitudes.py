@@ -68,3 +68,63 @@ def phi(ind, phase_angle):
         [0.63, 1.22]
     ]
     return np.exp(coeffs[0][ind - 1] * np.tan(phase_angle / 2)**(coeffs[1][ind - 1]))
+
+
+def convert_colour_mags(mag, in_colour, out_colour, convention="LSST", asteroid_type="C"):
+    """Convert between different colours in magnitudes.
+
+    MPC convention is here: https://minorplanetcenter.net/iau/info/BandConversion.txt
+    LSST convention is in Table 1 of this: http://faculty.washington.edu/ivezic/Publications/Jones2018.pdf
+
+    Parameters
+    ----------
+    mag : `float/array`
+        Input magnitude
+    in_colour : `str`
+        Colour of the input magnitude, one of (u, g, r, i, z, y)
+    out_colour : `str`
+        Desired output colour, one of (u, g, r, i, z, y)
+    convention : `str`, optional
+        Which convention of colours to use, either MPC or LSST, by default "LSST"
+    asteroid_type : `str`, optional
+        What type of asteroid to use, only used for LSST convention, either C or S, by default "C"
+
+    Returns
+    -------
+    out_mag : `float/array`
+        Magnitude in output colour
+    """
+    if convention == "MPC":
+        colours = {
+            "u": +2.5,
+            "g": -0.35,
+            "r": +0.14,
+            "i": +0.32,
+            "z": +0.26,
+            "y": +0.32
+        }
+    elif convention == "LSST":
+        if asteroid_type == "C":
+            colours = {
+                "u": +1.53,
+                "g": +0.28,
+                "r": -0.18,
+                "i": -0.29,
+                "z": -0.30,
+                "y": -0.30
+            }
+        elif asteroid_type == "S":
+            colours = {
+                "u": +1.82,
+                "g": +0.37,
+                "r": -0.26,
+                "i": -0.46,
+                "z": -0.40,
+                "y": -0.41
+            }
+        else:
+            raise ValueError(f"Invalid asteroid type: {asteroid_type}")
+    else:
+        raise ValueError(f"Invalid convention: {convention}")
+
+    return mag + (colours[out_colour] - colours[in_colour])
