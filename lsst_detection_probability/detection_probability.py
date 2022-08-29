@@ -266,7 +266,8 @@ def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, first_
 
 
 def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, orbits, truth, night,
-                                   colour_by="distance", lims="full_schedule", field_radius=2.1, s=5):
+                                   colour_by="distance", lims="full_schedule", field_radius=2.1, s=10,
+                                   fig=None, ax=None, show=True, ax_labels=True, cbar=True):
     """Plot LSST schedule up using the dataframe containing fields. Each is assumed to be a circle for
     simplicity.
 
@@ -275,16 +276,22 @@ def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, orbits, truth, 
     df : `pandas DataFrame`
         DataFrame of fields (see `get_LSST_schedule`)
     """
+    # create the figure with equal aspect ratio
+    if fig is None or ax is None:
+        fig, ax = plt.subplots(figsize=(20, 10))
+    ax.set_aspect("equal")
+
     # check that there were observations in this night
     orbits["night"] = (orbits["mjd_utc"] - 0.5).astype(int) - 59638
     mask = orbits["night"] == night
     if not np.any(mask):
+        if lims == "full_schedule":
+            ax.set_xlim(schedule["fieldRA"].min() - 3,
+                        schedule["fieldRA"].max() + 3)
+            ax.set_ylim(schedule["fieldDec"].min() - 3,
+                        schedule["fieldDec"].max() + 3)
         print("Warning: No observations in this night")
-        return
-
-    # create the figure with equal aspect ratio
-    fig, ax = plt.subplots(figsize=(20, 10))
-    ax.set_aspect("equal")
+        return None, None
 
     # plot each schedule with difference colours and widths
     for table, colour, lw in zip([schedule, reachable_schedule], ["black", "tab:green"], [1, 2]):
@@ -306,18 +313,21 @@ def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, orbits, truth, 
                                        + (orbits["obs_z"] - orbits["obj_z"])**2))
 
         boundaries = np.arange(-1, 1.1 + 0.2, 0.2)
-        norm = BoundaryNorm(boundaries, plt.cm.magma_r.N, clip=True)
+        norm = BoundaryNorm(boundaries, plt.cm.plasma_r.N, clip=True)
 
         for orb in orbits[mask]["orbit_id"].unique():
             more_mask = orbits[mask]["orbit_id"] == orb
             ax.plot(orbits["RA_deg"][mask][more_mask], orbits["Dec_deg"][mask][more_mask],
-                    color=plt.cm.magma_r(norm(log_dist_from_earth[mask][more_mask][0])))
+                    color=plt.cm.plasma_r(norm(log_dist_from_earth[mask][more_mask].iloc[0])))
 
         scatter = ax.scatter(orbits["RA_deg"][mask], orbits["Dec_deg"][mask], s=s,
-                             c=log_dist_from_earth[mask], norm=norm, cmap="magma_r")
-        fig.colorbar(scatter, label="Log Topocentric Distance [AU]")
+                             c=log_dist_from_earth[mask], norm=norm, cmap="plasma_r")
+        
+        if cbar:
+            fig.colorbar(scatter, label="Log Topocentric Distance [AU]")
 
-        scatter = ax.scatter(truth["RA_deg"][mask], truth["Dec_deg"][mask], s=s * 2, c="tab:red", marker="x")
+        scatter = ax.scatter(truth["RA_deg"][mask], truth["Dec_deg"][mask], s=s, c="#13f2a8", marker="x")
+        ax.plot(truth["RA_deg"][mask], truth["Dec_deg"][mask], color="#13f2a8")
     else:
         raise ValueError("Invalid value for colour_by")
 
@@ -342,10 +352,12 @@ def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, orbits, truth, 
         raise ValueError("Invalid input for lims")
 
     # label the axes, add a grid, show the plot
-    ax.set_xlabel("Right Ascension [deg]")
-    ax.set_ylabel("Declination [deg]")
+    if ax_labels:
+        ax.set_xlabel("Right Ascension [deg]")
+        ax.set_ylabel("Declination [deg]")
     ax.grid()
 
-    plt.show()
+    if show:
+        plt.show()
 
     return fig, ax
