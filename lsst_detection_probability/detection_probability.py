@@ -78,11 +78,12 @@ def get_detection_probabilities(night_start, path="../neocp/neo/", detection_win
     last_visit_times = full_schedule.loc[last_times_ind]["observationStartMJD"].values
 
     file = find_first_file(night_list)
-    visit_file = pd.read_hdf(path + f"filtered_visit_{file:03d}.h5")
+    visit_file = pd.read_hdf(path + f"filtered_visit_scores_{file:03d}.h5")
 
     # get the objects from the night
-    sorted_obs = visit_file[visit_file["night"] == night_start].sort_values(["ObjID", "FieldMJD"])
-    unique_objs = sorted_obs["hex_id"].unique()
+    obs_mask = np.logical_and(visit_file["night"] == night_start, visit_file["scores"] >= 65)
+    sorted_obs = visit_file[obs_mask].sort_values(["ObjID", "FieldMJD"])
+    unique_objs = sorted_obs.index.unique()
 
     # get the truth
     unique_findable_neo_hex_ids = np.load("../neocp/unique_findable_neo_hex_ids_linked.npy",
@@ -106,7 +107,7 @@ def get_detection_probabilities(night_start, path="../neocp/neo/", detection_win
 
 def first_last_pos_from_id(hex_id, sorted_obs, s3m_cart, distances, radial_velocities,
                            first_visit_times, last_visit_times):
-    rows = sorted_obs[sorted_obs["hex_id"] == hex_id]
+    rows = sorted_obs.loc[hex_id]
 
     eph_times = Time(np.sort(np.concatenate([first_visit_times, last_visit_times])), format="mjd")
 
@@ -165,7 +166,7 @@ def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, first_
         Estimated probability that the object will be detected by LSST alone
     """
     # get the matching rows and ephemerides for start of each night
-    rows = sorted_obs[sorted_obs["hex_id"] == hex_id]
+    rows = sorted_obs.loc[hex_id]
     start_orbits = variant_orbit_ephemerides(ra=rows.iloc[0]["AstRA(deg)"] * u.deg,
                                              dec=rows.iloc[0]["AstDec(deg)"] * u.deg,
                                              ra_end=rows.iloc[-1]["AstRA(deg)"] * u.deg,
