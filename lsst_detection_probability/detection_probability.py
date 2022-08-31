@@ -216,6 +216,7 @@ def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, first_
                                                       format="mjd"),
                                        only_neos=True)
     orbits["orbit_id"] = orbits["orbit_id"].astype(int)
+    orbit_ids = orbits["orbit_id"].unique()
 
     # merge the orbits with the schedule
     joined_table = pd.merge(orbits, reachable_schedule, left_on="mjd_utc", right_on="observationStartMJD")
@@ -249,12 +250,12 @@ def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, first_
     filtered_obs = df_multiindex.loc[mask[mask].index].reset_index()
 
     # decide whether each orbit is findable
-    N_ORB = len(distances) * len(radial_velocities)
+    N_ORB = len(orbit_ids)
     findable = np.repeat(False, N_ORB)
-    for orbit_id in range(N_ORB):
+    for i, orbit_id in enumerate(orbit_ids):
         this_orbit = filtered_obs[filtered_obs["orbit_id"] == orbit_id]
 
-        # if the orbit actually exists (if obs exist)
+        # if the orbit actually exists (if it hasn't been filtered out)
         if not this_orbit.empty:
             # check how many nights it is observed on and require the min nights
             unique_nights = np.sort(this_orbit["night"].unique())
@@ -270,7 +271,7 @@ def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, first_
 
                         # if you've reached the min nights then mark it as findable
                         if counter == min_nights:
-                            findable[orbit_id] = True
+                            findable[i] = True
                             break
 
                     # otherwise reset the counter and start at this night
