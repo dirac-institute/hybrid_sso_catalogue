@@ -39,7 +39,7 @@ plt.rcParams.update(params)
 def variant_orbit_ephemerides(ra, dec, ra_end, dec_end, delta_t, obstime, distances, radial_velocities,
                               sigma_ra=0.1 * u.arcsecond, sigma_dec=0.1 * u.arcsecond, eph_times=None,
                               coords="heliocentriceclipticiau76", location="Gemini South", obs_code="I11",
-                              pm_ra_cosdec=None, pm_dec=None, verbose=False):
+                              pm_ra_cosdec=None, pm_dec=None, only_neos=False, verbose=False):
     """Generate ephemerides for a series of variant orbits for an observed object without constraints on its
     distance and radial velocity.
 
@@ -77,6 +77,8 @@ def variant_orbit_ephemerides(ra, dec, ra_end, dec_end, delta_t, obstime, distan
         Location of observations (str from astropy Earth locations), by default "Gemini South"a
     obs_code : `str`, optional
         As `location` for the 3 character code, by default "I11"
+    only_neos : `bool`, optional
+        Whether to restrict orbits to only those that match an NEO (q < 1.3), by default False
     verbose: `bool`, optional
         Whether to print some debugging messages, by default False
 
@@ -160,6 +162,13 @@ def variant_orbit_ephemerides(ra, dec, ra_end, dec_end, delta_t, obstime, distan
 
     # create a THOR orbits class
     orbits_class = thor.Orbits(orbits=corrected_orbits, epochs=Time(corrected_t0, format="mjd"))
+
+    # if you only want NEO orbits then mask anything with a perihelion above 1.3 AU
+    if only_neos:
+        orbits_class.keplerian = thor.kepler.convertOrbitalElements(orbits_class.cartesian,
+                                                                    "cartesian", "keplerian")
+        perihelion = orbits_class.keplerian[:, 0] * (1 - orbits_class.keplerian[:, 1])
+        orbits_class = orbits_class[perihelion < 1.3]
 
     # default to one day after the observation
     if eph_times is None:

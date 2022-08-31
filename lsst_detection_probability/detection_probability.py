@@ -118,7 +118,8 @@ def first_last_pos_from_id(hex_id, sorted_obs, s3m_cart, distances, radial_veloc
                                        obstime=Time(rows.iloc[0]["FieldMJD"], format="mjd"),
                                        distances=distances,
                                        radial_velocities=radial_velocities,
-                                       eph_times=eph_times)
+                                       eph_times=eph_times,
+                                       only_neos=True)
     orbits["orbit_id"] = orbits["orbit_id"].astype(int)
 
     item = s3m_cart[s3m_cart["hex_id"] == hex_id]
@@ -212,7 +213,8 @@ def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, first_
                                        distances=distances,
                                        radial_velocities=radial_velocities,
                                        eph_times=Time(reachable_schedule["observationStartMJD"].values,
-                                                      format="mjd"))
+                                                      format="mjd"),
+                                       only_neos=True)
     orbits["orbit_id"] = orbits["orbit_id"].astype(int)
 
     # merge the orbits with the schedule
@@ -348,9 +350,7 @@ def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, orbits, truth, 
         scatter = ax.scatter(truth["RA_deg"][mask], truth["Dec_deg"][mask], s=s * 10, c="tab:red")
     # if distance then use a log scale for the colourbar
     elif colour_by == "distance":
-        log_dist_from_earth = np.log10(np.sqrt((orbits["obs_x"] - orbits["obj_x"])**2
-                                       + (orbits["obs_y"] - orbits["obj_y"])**2
-                                       + (orbits["obs_z"] - orbits["obj_z"])**2))
+        log_dist_from_earth = np.log10(orbits["delta_au"])
 
         boundaries = np.arange(-1, 1.1 + 0.2, 0.2)
         norm = BoundaryNorm(boundaries, plt.cm.plasma_r.N, clip=True)
@@ -364,7 +364,7 @@ def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, orbits, truth, 
                              c=log_dist_from_earth[mask], norm=norm, cmap="plasma_r")
 
         if cbar:
-            fig.colorbar(scatter, label="Log Topocentric Distance [AU]")
+            fig.colorbar(scatter, label="Log Geocentric Distance [AU]")
 
         scatter = ax.scatter(truth["RA_deg"][mask], truth["Dec_deg"][mask], s=s, c="#13f2a8", marker="x")
         ax.plot(truth["RA_deg"][mask], truth["Dec_deg"][mask], color="#13f2a8")
