@@ -6,7 +6,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import BoundaryNorm
 from matplotlib.collections import PatchCollection
-from time import time
+import time
+from multiprocessing import Pool
+from functools import partial
 
 import thor
 from thor.backend import PYOORB
@@ -48,8 +50,8 @@ def get_detection_probabilities(night_start, path="../neocp/neo/", detection_win
     -------
     probs : `list`
         Estimated probability that each object will be detected by LSST alone
-    will_be_detected : `list`
-        Truth of whether each object will be detected by LSST alone
+    unique_objs : `list`
+        List of unique hex ids that have digest2 > 65 that were observed on `night_start`
     """
     # create a list of nights in the detection window and get schedule for them
     night_list = list(range(night_start, night_start + detection_window))
@@ -86,52 +88,20 @@ def get_detection_probabilities(night_start, path="../neocp/neo/", detection_win
     sorted_obs = visit_file[obs_mask].sort_values(["ObjID", "FieldMJD"])
     unique_objs = sorted_obs.index.unique()
 
-    # get the truth
-    unique_findable_neo_hex_ids = np.load("../neocp/unique_findable_neo_hex_ids_linked.npy",
-                                          allow_pickle=True)
-    will_be_detected = np.isin(unique_objs, unique_findable_neo_hex_ids)
-
     print("Everything is prepped and ready for probability calculations")
 
     # calculate detection probabilities
     probs = np.zeros(len(unique_objs))
     for i, hex_id in enumerate(unique_objs):
-        start = time()
-        probs[i], _, _ = probability_from_id(hex_id, sorted_obs, distances=np.logspace(-1, 1, 50) * u.AU,
-                                             radial_velocities=np.linspace(-100, 100, 20) * u.km / u.s,
-                                             first_visit_times=first_visit_times, full_schedule=full_schedule,
-                                             night_lengths=night_lengths, night_list=night_list,
-                                             detection_window=detection_window, min_nights=min_nights)
-        print(f"{i}/{len(unique_objs)}: {time() - start:1.2f}, {hex_id}, {probs[i]:1.3f}")
+        start = time.time()
+        probs[i] = probability_from_id(hex_id, sorted_obs, distances=np.logspace(-1, 1, 50) * u.AU,
+                                       radial_velocities=np.linspace(-100, 100, 20) * u.km / u.s,
+                                       first_visit_times=first_visit_times, full_schedule=full_schedule,
+                                       night_lengths=night_lengths, night_list=night_list,
+                                       detection_window=detection_window, min_nights=min_nights)
+        print(f"{i}/{len(unique_objs)}: {time.time() - start:1.2f}, {hex_id}, {probs[i]:1.3f}")
 
-    return probs, will_be_detected
-
-
-def first_last_pos_from_id(hex_id, sorted_obs, s3m_cart, distances, radial_velocities,
-                           first_visit_times, last_visit_times):
-    rows = sorted_obs.loc[hex_id]
-
-    eph_times = Time(np.sort(np.concatenate([first_visit_times, last_visit_times])), format="mjd")
-
-    orbits = variant_orbit_ephemerides(ra=rows.iloc[0]["AstRA(deg)"] * u.deg,
-                                       dec=rows.iloc[0]["AstDec(deg)"] * u.deg,
-                                       ra_end=rows.iloc[-1]["AstRA(deg)"] * u.deg,
-                                       dec_end=rows.iloc[-1]["AstDec(deg)"] * u.deg,
-                                       delta_t=(rows.iloc[-1]["FieldMJD"] - rows.iloc[0]["FieldMJD"]) * u.day,
-                                       obstime=Time(rows.iloc[0]["FieldMJD"], format="mjd"),
-                                       distances=distances,
-                                       radial_velocities=radial_velocities,
-                                       eph_times=eph_times,
-                                       only_neos=True)
-    orbits["orbit_id"] = orbits["orbit_id"].astype(int)
-
-    item = s3m_cart[s3m_cart["hex_id"] == hex_id]
-    orb_class = thor.Orbits(orbits=np.atleast_2d(np.concatenate(([item["x"], item["y"], item["z"]],
-                                                                 [item["vx"], item["vy"], item["vz"]]))).T,
-                            epochs=Time(item["t_0"], format="mjd"))
-    truth = backend.generateEphemeris(orbits=orb_class, observers={"I11": Time(eph_times, format="mjd")})
-
-    return orbits, truth
+    return probs, unique_objs
 
 
 def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, first_visit_times,
@@ -167,44 +137,12 @@ def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, first_
     probs : `list`
         Estimated probability that the object will be detected by LSST alone
     """
+    start = time.time()
+
     # get the matching rows and ephemerides for start of each night
     rows = sorted_obs.loc[hex_id]
-    start_orbits = variant_orbit_ephemerides(ra=rows.iloc[0]["AstRA(deg)"] * u.deg,
-                                             dec=rows.iloc[0]["AstDec(deg)"] * u.deg,
-                                             ra_end=rows.iloc[-1]["AstRA(deg)"] * u.deg,
-                                             dec_end=rows.iloc[-1]["AstDec(deg)"] * u.deg,
-                                             delta_t=(rows.iloc[-1]["FieldMJD"]
-                                                      - rows.iloc[0]["FieldMJD"]) * u.day,
-                                             obstime=Time(rows.iloc[0]["FieldMJD"], format="mjd"),
-                                             distances=[1] * u.AU,
-                                             radial_velocities=[2] * u.km / u.s,
-                                             eph_times=Time(first_visit_times, format="mjd"))
-
-    # create some nominal field size
-    FIELD_SIZE = 2.1 * 5
-
-    # mask the schedule to things that can be reached on each night
-    masked_schedules = [pd.DataFrame() for i in range(len(night_list))]
-    for j in range(len(start_orbits)):
-        delta_ra = start_orbits.loc[j]["vRAcosDec"] / np.cos(start_orbits.loc[j]["Dec_deg"] * u.deg)\
-            * night_lengths[j]
-        delta_dec = start_orbits.loc[j]["vDec"] * night_lengths[j]
-
-        ra_lims = sorted([start_orbits.loc[j]["RA_deg"], start_orbits.loc[j]["RA_deg"] + delta_ra.value])
-        ra_lims = [ra_lims[0] - FIELD_SIZE, ra_lims[-1] + FIELD_SIZE]
-        dec_lims = sorted([start_orbits.loc[j]["Dec_deg"], start_orbits.loc[j]["Dec_deg"] + delta_dec])
-        dec_lims = [dec_lims[0] - FIELD_SIZE, dec_lims[-1] + FIELD_SIZE]
-
-        night = (start_orbits.loc[j]["mjd_utc"] - 0.5).astype(int) - 59638
-
-        mask = full_schedule["night"] == night
-        within_lims = np.logical_and.reduce((full_schedule[mask]["fieldRA"] > ra_lims[0],
-                                             full_schedule[mask]["fieldRA"] < ra_lims[1],
-                                             full_schedule[mask]["fieldDec"] > dec_lims[0],
-                                             full_schedule[mask]["fieldDec"] < dec_lims[1]))
-        masked_schedules[night_list.index(night)] = full_schedule[mask][within_lims]
-    # combine into a single reachable schedule
-    reachable_schedule = pd.concat(masked_schedules)
+    reachable_schedule = get_reachable_schedule(rows, first_visit_times, night_list,
+                                                night_lengths, full_schedule)
 
     # get the orbits for the entire reachable schedule with the grid of distances and RVs
     orbits = variant_orbit_ephemerides(ra=rows.iloc[0]["AstRA(deg)"] * u.deg,
@@ -282,8 +220,76 @@ def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, first_
                         counter = 1
                         init = night
 
+    print(f"{hex_id}: {time.time() - start:1.2f}")
+
     # return the fraction of orbits that are findable
-    return findable.astype(int).sum() / N_ORB, reachable_schedule, orbits
+    return findable.astype(int).sum() / N_ORB
+
+
+def get_reachable_schedule(rows, first_visit_times, night_list, night_lengths, full_schedule):
+    start_orbits = variant_orbit_ephemerides(ra=rows.iloc[0]["AstRA(deg)"] * u.deg,
+                                             dec=rows.iloc[0]["AstDec(deg)"] * u.deg,
+                                             ra_end=rows.iloc[-1]["AstRA(deg)"] * u.deg,
+                                             dec_end=rows.iloc[-1]["AstDec(deg)"] * u.deg,
+                                             delta_t=(rows.iloc[-1]["FieldMJD"]
+                                                      - rows.iloc[0]["FieldMJD"]) * u.day,
+                                             obstime=Time(rows.iloc[0]["FieldMJD"], format="mjd"),
+                                             distances=[1] * u.AU,
+                                             radial_velocities=[2] * u.km / u.s,
+                                             eph_times=Time(first_visit_times, format="mjd"))
+
+    # create some nominal field size
+    FIELD_SIZE = 2.1 * 5
+
+    # mask the schedule to things that can be reached on each night
+    masked_schedules = [pd.DataFrame() for i in range(len(night_list))]
+    for j in range(len(start_orbits)):
+        delta_ra = start_orbits.loc[j]["vRAcosDec"] / np.cos(start_orbits.loc[j]["Dec_deg"] * u.deg)\
+            * night_lengths[j]
+        delta_dec = start_orbits.loc[j]["vDec"] * night_lengths[j]
+
+        ra_lims = sorted([start_orbits.loc[j]["RA_deg"], start_orbits.loc[j]["RA_deg"] + delta_ra.value])
+        ra_lims = [ra_lims[0] - FIELD_SIZE, ra_lims[-1] + FIELD_SIZE]
+        dec_lims = sorted([start_orbits.loc[j]["Dec_deg"], start_orbits.loc[j]["Dec_deg"] + delta_dec])
+        dec_lims = [dec_lims[0] - FIELD_SIZE, dec_lims[-1] + FIELD_SIZE]
+
+        night = (start_orbits.loc[j]["mjd_utc"] - 0.5).astype(int) - 59638
+
+        mask = full_schedule["night"] == night
+        within_lims = np.logical_and.reduce((full_schedule[mask]["fieldRA"] > ra_lims[0],
+                                             full_schedule[mask]["fieldRA"] < ra_lims[1],
+                                             full_schedule[mask]["fieldDec"] > dec_lims[0],
+                                             full_schedule[mask]["fieldDec"] < dec_lims[1]))
+        masked_schedules[night_list.index(night)] = full_schedule[mask][within_lims]
+    # combine into a single reachable schedule
+    return pd.concat(masked_schedules)
+
+
+def first_last_pos_from_id(hex_id, sorted_obs, s3m_cart, distances, radial_velocities,
+                           first_visit_times, last_visit_times):
+    rows = sorted_obs.loc[hex_id]
+
+    eph_times = Time(np.sort(np.concatenate([first_visit_times, last_visit_times])), format="mjd")
+
+    orbits = variant_orbit_ephemerides(ra=rows.iloc[0]["AstRA(deg)"] * u.deg,
+                                       dec=rows.iloc[0]["AstDec(deg)"] * u.deg,
+                                       ra_end=rows.iloc[-1]["AstRA(deg)"] * u.deg,
+                                       dec_end=rows.iloc[-1]["AstDec(deg)"] * u.deg,
+                                       delta_t=(rows.iloc[-1]["FieldMJD"] - rows.iloc[0]["FieldMJD"]) * u.day,
+                                       obstime=Time(rows.iloc[0]["FieldMJD"], format="mjd"),
+                                       distances=distances,
+                                       radial_velocities=radial_velocities,
+                                       eph_times=eph_times,
+                                       only_neos=True)
+    orbits["orbit_id"] = orbits["orbit_id"].astype(int)
+
+    item = s3m_cart[s3m_cart["hex_id"] == hex_id]
+    orb_class = thor.Orbits(orbits=np.atleast_2d(np.concatenate(([item["x"], item["y"], item["z"]],
+                                                                 [item["vx"], item["vy"], item["vz"]]))).T,
+                            epochs=Time(item["t_0"], format="mjd"))
+    truth = backend.generateEphemeris(orbits=orb_class, observers={"I11": Time(eph_times, format="mjd")})
+
+    return orbits, truth
 
 
 def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, orbits, truth, night,hex_id,
