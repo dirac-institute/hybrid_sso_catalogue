@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def absolute_magnitude(m, G, phase_angle, d_ast_sun, d_ast_earth):
+def absolute_magnitude(m, d_ast_sun, d_ast_earth, d_earth_sun=None, phase_angle=None, G=0.15):
     """Get the absolute magnitude of an asteroid (following MPC equation
     https://minorplanetcenter.net/iau/ECS/MPCArchive/1985/MPC_19851227.pdf)
 
@@ -9,25 +9,32 @@ def absolute_magnitude(m, G, phase_angle, d_ast_sun, d_ast_earth):
     ----------
     m : `float/array`
         Apparent magnitude
-    G : `float/array`
-        Slope parameter
-    phase_angle : `float/array`
-        Phase angle in radians
     d_ast_sun : `float/array`
         Distance from the asteroid to the Sun in AU
     d_ast_earth : `float/array`
         Distance from the asteroid to the Earth in AU
+    d_earth_sun : `float/array`
+        Distance from the Earth to the Sun in AU, optional. Must be supplied if `phase_angle` is None.
+    phase_angle : `float/array`
+        Phase angle in radians, optional. Must be supplied if `d_earth_sun` is None.
+    G : `float/array`
+        Slope parameter, optional. By default, 0.15.
 
     Returns
     -------
     H : `float/array`
         Absolute magnitude
     """
+    if phase_angle is None and d_earth_sun is None:
+        raise ValueError("Either `phase_angle` or `d_earth_sun` must be provided")
+    elif phase_angle is None:
+        phase_angle = np.arccos((d_ast_sun**2 + d_ast_earth**2 - d_earth_sun**2)
+                                / (2 * d_ast_sun * d_ast_earth))
     return m - 5 * np.log10(d_ast_sun * d_ast_earth)\
         + 2.5 * np.log10((1 - G) * phi(1, phase_angle) + G * phi(2, phase_angle))
 
 
-def apparent_magnitude(H, G, phase_angle, d_ast_sun, d_ast_earth):
+def apparent_magnitude(H, d_ast_sun, d_ast_earth, d_earth_sun=None, phase_angle=None, G=0.15):
     """Get the apparent magnitude of an asteroid (following MPC equation
     https://minorplanetcenter.net/iau/ECS/MPCArchive/1985/MPC_19851227.pdf)
 
@@ -35,20 +42,27 @@ def apparent_magnitude(H, G, phase_angle, d_ast_sun, d_ast_earth):
     ----------
     H : `float/array`
         Absolute magnitude
-    G : `float/array`
-        Slope parameter
-    phase_angle : `float/array`
-        Phase angle in radians
     d_ast_sun : `float/array`
         Distance from the asteroid to the Sun in AU
     d_ast_earth : `float/array`
         Distance from the asteroid to the Earth in AU
+    d_earth_sun : `float/array`
+        Distance from the Earth to the Sun in AU, optional. Must be supplied if `phase_angle` is None.
+    phase_angle : `float/array`
+        Phase angle in radians, optional. Must be supplied if `d_earth_sun` is None.
+    G : `float/array`
+        Slope parameter, optional. By default, 0.15.
 
     Returns
     -------
     m : `float/array`
         Apparent magnitude
     """
+    if phase_angle is None and d_earth_sun is None:
+        raise ValueError("Either `phase_angle` or `d_earth_sun` must be provided")
+    elif phase_angle is None:
+        phase_angle = np.arccos((d_ast_sun**2 + d_ast_earth**2 - d_earth_sun**2)
+                                / (2 * d_ast_sun * d_ast_earth))
     return H + 5 * np.log10(d_ast_sun * d_ast_earth)\
         - 2.5 * np.log10((1 - G) * phi(1, phase_angle) + G * phi(2, phase_angle))
 
