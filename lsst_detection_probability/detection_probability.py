@@ -7,8 +7,6 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import BoundaryNorm
 from matplotlib.collections import PatchCollection
 import time
-from multiprocessing import Pool
-from functools import partial
 
 import thor
 from thor.backend import PYOORB
@@ -137,12 +135,14 @@ def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, first_
     probs : `list`
         Estimated probability that the object will be detected by LSST alone
     """
-    start = time.time()
-
     # get the matching rows and ephemerides for start of each night
     rows = sorted_obs.loc[hex_id]
     reachable_schedule = get_reachable_schedule(rows, first_visit_times, night_list,
                                                 night_lengths, full_schedule)
+
+    v_mags = [convert_colour_mags(r["MaginFilter"],
+                                  in_colour=r["filter"], out_colour="V") for _, r in rows.iterrows()]
+    apparent_mag = np.mean(v_mags)
 
     # get the orbits for the entire reachable schedule with the grid of distances and RVs
     orbits = variant_orbit_ephemerides(ra=rows.iloc[0]["AstRA(deg)"] * u.deg,
@@ -153,6 +153,7 @@ def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, first_
                                        obstime=Time(rows.iloc[0]["FieldMJD"], format="mjd"),
                                        distances=distances,
                                        radial_velocities=radial_velocities,
+                                       apparent_mag=apparent_mag,
                                        eph_times=Time(reachable_schedule["observationStartMJD"].values,
                                                       format="mjd"),
                                        only_neos=True)
@@ -219,8 +220,6 @@ def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, first_
                     else:
                         counter = 1
                         init = night
-
-    print(f"{hex_id}: {time.time() - start:1.2f}")
 
     # return the fraction of orbits that are findable
     return findable.astype(int).sum() / N_ORB
@@ -344,33 +343,32 @@ def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, orbits, truth, 
             obs_dfs = [pd.read_hdf(f"../neocp/neo/filtered_visit_scores_{i:03d}.h5").sort_values("FieldMJD")[["FieldMJD", "night", "MaginFilter", "filter"]]
                for i in [0, 1]]
             all_obs = pd.concat(obs_dfs)
-            all_obs = all_obs[all_obs["night"] == night]
-
-            all_obs["obs_id"] = np.arange(len(all_obs))
             all_obs.reset_index(inplace=True)
+            nightly_obs = all_obs[all_obs["night"] == night]
 
-            if not all_obs.empty:
-                det_times = all_obs[all_obs["hex_id"] == hex_id]["FieldMJD"].values
+            if not nightly_obs.empty:
+                det_times = nightly_obs[nightly_obs["hex_id"] == hex_id]["FieldMJD"].values
 
-                if len(det_times) == 0:
-                    continue
+                if len(det_times) != 0:
+                    ids = [(thing - table[table_mask]["observationStartMJD"][table[table_mask]["observationStartMJD"] <= thing]).idxmin() for thing in det_times]
+                    det_fields = table.loc[ids]
 
-                ids = [(thing - table[table_mask]["observationStartMJD"][table[table_mask]["observationStartMJD"] <= thing]).idxmin() for thing in det_times]
-                det_fields = table.loc[ids]
+                    ra_field = det_fields["fieldRA"]
+                    dec_field = det_fields["fieldDec"]
+                    patches = [plt.Circle(center, field_radius * 0.8) for center in np.transpose([ra_field, dec_field])]
+                    coll = PatchCollection(patches, edgecolors="#13f2a8", facecolors="none", linewidths=2)
+                    ax.add_collection(coll)
 
-                ra_field = det_fields["fieldRA"]
-                dec_field = det_fields["fieldDec"]
-                patches = [plt.Circle(center, field_radius * 0.8) for center in np.transpose([ra_field, dec_field])]
-                coll = PatchCollection(patches, edgecolors="#13f2a8", facecolors="none", linewidths=2)
-                ax.add_collection(coll)
-
-                ax.annotate(f"{len(det_times)} observations", xy=(0.98, 0.93), xycoords="axes fraction",
-                            ha="right", va="top", fontsize=20, color="#13f2a8")
+                    ax.annotate(f"{len(det_times)} observations", xy=(0.98, 0.93), xycoords="axes fraction",
+                                ha="right", va="top", fontsize=20, color="#13f2a8")
 
             if show_mag_labels:
 
-                print("Previous magnitudes:")
-                print(all_obs[np.logical_and(all_obs["hex_id"] == hex_id, all_obs["night"] <= night)])
+                print("Previous magnitudes:", night)
+                prev_mags = all_obs[np.logical_and(all_obs["hex_id"] == hex_id, all_obs["night"] <= night)].copy()
+                prev_v_band = [convert_colour_mags(r["MaginFilter"], in_colour=r["filter"], out_colour="V") for i, r in prev_mags.iterrows()]
+                prev_mags["VMag"] = prev_v_band
+                print(prev_mags)
 
 
                 # build a dictionary of magnitude labels based on field position
@@ -379,11 +377,13 @@ def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, orbits, truth, 
                     # create tuple of position for dict key
                     xy = (visit["fieldRA"], visit["fieldDec"])
 
+                    v_mag = convert_colour_mags(visit["fiveSigmaDepth"], out_colour="V", in_colour=visit["filter"])
+
                     # append or create each dict item
                     if xy in mag_labels:
-                        mag_labels[xy] += f'\n{visit["filter"]}{visit["fiveSigmaDepth"]:.2f}'
+                        mag_labels[xy] += f'\n{visit["filter"]}{visit["fiveSigmaDepth"]:.2f},v{v_mag:.2f}'
                     else:
-                        mag_labels[xy] = f'{visit["filter"]}{visit["fiveSigmaDepth"]:.2f}'
+                        mag_labels[xy] = f'{visit["filter"]}{visit["fiveSigmaDepth"]:.2f},v{v_mag:.2f}'
 
                 # go through each unique field position and add an annotation
                 for xy, label in mag_labels.items():
