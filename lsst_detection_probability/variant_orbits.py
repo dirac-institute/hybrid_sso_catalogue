@@ -1,6 +1,6 @@
 import astropy.units as u
 from astropy.time import Time
-from astropy.coordinates import SkyCoord, EarthLocation
+from astropy.coordinates import SkyCoord, EarthLocation, get_sun
 from astropy.visualization import quantity_support
 quantity_support()
 
@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 import pandas as pd
 pd.set_option("display.max_columns", None)
+
+from magnitudes import absolute_magnitude
 
 import thor
 from thor.constants import Constants
@@ -37,9 +39,9 @@ plt.rcParams.update(params)
 
 
 def variant_orbit_ephemerides(ra, dec, ra_end, dec_end, delta_t, obstime, distances, radial_velocities,
-                              sigma_ra=0.1 * u.arcsecond, sigma_dec=0.1 * u.arcsecond, eph_times=None,
-                              coords="heliocentriceclipticiau76", location="Gemini South", obs_code="I11",
-                              pm_ra_cosdec=None, pm_dec=None, only_neos=False, verbose=False):
+                              sigma_ra=0.1 * u.arcsecond, sigma_dec=0.1 * u.arcsecond, apparent_mag=None,
+                              eph_times=None, coords="heliocentriceclipticiau76", location="Gemini South",
+                              obs_code="I11", pm_ra_cosdec=None, pm_dec=None, only_neos=False, verbose=False):
     """Generate ephemerides for a series of variant orbits for an observed object without constraints on its
     distance and radial velocity.
 
@@ -69,6 +71,8 @@ def variant_orbit_ephemerides(ra, dec, ra_end, dec_end, delta_t, obstime, distan
         Observation error in RA, by default 0.1*u.arcsecond
     sigma_dec : `float`, optional
         Observation error in Dec, by default 0.1*u.arcsecond
+    apparent_mag : `float`, optional
+        Apparent magnitude of object in V band
     eph_times : `Astropy Time object/array`, optional
         Array of times at which to produce ephemerides, by default 1 day later
     coords : `str`, optional
@@ -160,8 +164,17 @@ def variant_orbit_ephemerides(ra, dec, ra_end, dec_end, delta_t, obstime, distan
                                              lt_tol=1e-10, mu=Constants.MU, max_iter=1000, tol=1e-15)
     corrected_t0 = t0 - lt
 
+    if apparent_mag is None:
+        H = None
+    else:
+        d_ast_sun = ecl.distance.to(u.AU).value
+        d_ast_earth = D.ravel().to(u.AU).value
+        d_earth_sun = get_sun(time=Time(corrected_t0, format="mjd")).distance.to(u.AU).value
+        H = absolute_magnitude(m=apparent_mag,
+                               d_ast_sun=d_ast_sun, d_ast_earth=d_ast_earth, d_earth_sun=d_earth_sun)
+
     # create a THOR orbits class
-    orbits_class = thor.Orbits(orbits=corrected_orbits, epochs=Time(corrected_t0, format="mjd"))
+    orbits_class = thor.Orbits(orbits=corrected_orbits, epochs=Time(corrected_t0, format="mjd"), H=H)
 
     # if you only want NEO orbits then mask anything with a perihelion above 1.3 AU
     if only_neos:
