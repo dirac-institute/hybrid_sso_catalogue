@@ -181,10 +181,10 @@ def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, first_
 
     bright_enough = joined_table["mag_in_filter"] < joined_table["fiveSigmaDepth"]
 
-    joined_table["observed"] = (in_current_field & bright_enough).astype(int)
+    joined_table["observed"] = np.logical_and(in_current_field, bright_enough)
 
     # remove any nights that don't match requirements (min_obs, min_arc, max_time)
-    df = joined_table[joined_table["observed"] != 0]
+    df = joined_table[joined_table["observed"]]
     mask = df.groupby(["orbit_id", "night"]).apply(filter_tracklets)
     df_multiindex = df.set_index(["orbit_id", "night"]).sort_index()
     filtered_obs = df_multiindex.loc[mask[mask].index].reset_index()
