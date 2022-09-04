@@ -92,11 +92,11 @@ def get_detection_probabilities(night_start, path="../neocp/neo/", detection_win
     probs = np.zeros(len(unique_objs))
     for i, hex_id in enumerate(unique_objs):
         start = time.time()
-        probs[i] = probability_from_id(hex_id, sorted_obs, distances=np.logspace(-1, 1, 50) * u.AU,
-                                       radial_velocities=np.linspace(-100, 100, 20) * u.km / u.s,
-                                       first_visit_times=first_visit_times, full_schedule=full_schedule,
-                                       night_lengths=night_lengths, night_list=night_list,
-                                       detection_window=detection_window, min_nights=min_nights)
+        probs[i], _ = probability_from_id(hex_id, sorted_obs, distances=np.logspace(-1, 1, 50) * u.AU,
+                                          radial_velocities=np.linspace(-100, 100, 20) * u.km / u.s,
+                                          first_visit_times=first_visit_times, full_schedule=full_schedule,
+                                          night_lengths=night_lengths, night_list=night_list,
+                                          detection_window=detection_window, min_nights=min_nights)
         print(f"{i}/{len(unique_objs)}: {time.time() - start:1.2f}, {hex_id}, {probs[i]:1.3f}")
 
     return probs, unique_objs
@@ -145,7 +145,7 @@ def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, first_
     apparent_mag = np.mean(v_mags)
 
     # get the orbits for the entire reachable schedule with the grid of distances and RVs
-    orbits = variant_orbit_ephemerides(ra=rows.iloc[0]["AstRA(deg)"] * u.deg,
+    ephemerides = variant_orbit_ephemerides(ra=rows.iloc[0]["AstRA(deg)"] * u.deg,
                                        dec=rows.iloc[0]["AstDec(deg)"] * u.deg,
                                        ra_end=rows.iloc[-1]["AstRA(deg)"] * u.deg,
                                        dec_end=rows.iloc[-1]["AstDec(deg)"] * u.deg,
@@ -157,22 +157,22 @@ def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, first_
                                        eph_times=Time(reachable_schedule["observationStartMJD"].values,
                                                       format="mjd"),
                                        only_neos=True)
-    orbits["orbit_id"] = orbits["orbit_id"].astype(int)
-    orbit_ids = orbits["orbit_id"].unique()
+    ephemerides["orbit_id"] = ephemerides["orbit_id"].astype(int)
+    orbit_ids = ephemerides["orbit_id"].unique()
 
     # merge the orbits with the schedule
-    joined_table = pd.merge(orbits, reachable_schedule, left_on="mjd_utc", right_on="observationStartMJD")
+    joined_table = pd.merge(ephemerides, reachable_schedule,
+                            left_on="mjd_utc", right_on="observationStartMJD")
     
     # compute filter magnitudes
     mag_in_filter = np.ones(len(joined_table)) * np.inf
     for filter_letter in "ugrizy":
         filter_mask = joined_table["filter"] == filter_letter
-        if not filter_mask.any():
-            continue
-        mag_in_filter[filter_mask] = convert_colour_mags(joined_table[filter_mask]["VMag"],
-                                                         out_colour=filter_letter,
-                                                         in_colour="V", convention="LSST",
-                                                         asteroid_type="C")
+        if filter_mask.any():
+            mag_in_filter[filter_mask] = convert_colour_mags(joined_table[filter_mask]["VMag"],
+                                                            out_colour=filter_letter,
+                                                            in_colour="V", convention="LSST",
+                                                            asteroid_type="C")
     joined_table["mag_in_filter"] = mag_in_filter
 
     # mask those that are within the field (2.1 degrees)
@@ -222,7 +222,7 @@ def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, first_
                         init = night
 
     # return the fraction of orbits that are findable
-    return findable.astype(int).sum() / N_ORB
+    return findable.astype(int).sum() / N_ORB, joined_table
 
 
 def get_reachable_schedule(rows, first_visit_times, night_list, night_lengths, full_schedule):
@@ -270,7 +270,7 @@ def first_last_pos_from_id(hex_id, sorted_obs, s3m_cart, distances, radial_veloc
 
     eph_times = Time(np.sort(np.concatenate([first_visit_times, last_visit_times])), format="mjd")
 
-    orbits = variant_orbit_ephemerides(ra=rows.iloc[0]["AstRA(deg)"] * u.deg,
+    ephemerides = variant_orbit_ephemerides(ra=rows.iloc[0]["AstRA(deg)"] * u.deg,
                                        dec=rows.iloc[0]["AstDec(deg)"] * u.deg,
                                        ra_end=rows.iloc[-1]["AstRA(deg)"] * u.deg,
                                        dec_end=rows.iloc[-1]["AstDec(deg)"] * u.deg,
@@ -280,7 +280,7 @@ def first_last_pos_from_id(hex_id, sorted_obs, s3m_cart, distances, radial_veloc
                                        radial_velocities=radial_velocities,
                                        eph_times=eph_times,
                                        only_neos=True)
-    orbits["orbit_id"] = orbits["orbit_id"].astype(int)
+    ephemerides["orbit_id"] = ephemerides["orbit_id"].astype(int)
 
     item = s3m_cart[s3m_cart["hex_id"] == hex_id]
     orb_class = thor.Orbits(orbits=np.atleast_2d(np.concatenate(([item["x"], item["y"], item["z"]],
@@ -288,29 +288,21 @@ def first_last_pos_from_id(hex_id, sorted_obs, s3m_cart, distances, radial_veloc
                             epochs=Time(item["t_0"], format="mjd"))
     truth = backend.generateEphemeris(orbits=orb_class, observers={"I11": Time(eph_times, format="mjd")})
 
-    return orbits, truth
+    return ephemerides, truth
 
 
-def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, orbits, truth, night,hex_id,
+def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, ephemerides, truth, night,hex_id,
                                    colour_by="distance", lims="full_schedule", field_radius=2.1, s=10,
                                    filter_mask="all", show_mag_labels=False,
                                    fig=None, ax=None, show=True, ax_labels=True, cbar=True):
-    """Plot LSST schedule up using the dataframe containing fields. Each is assumed to be a circle for
-    simplicity.
-
-    Parameters
-    ----------
-    df : `pandas DataFrame`
-        DataFrame of fields (see `get_LSST_schedule`)
-    """
     # create the figure with equal aspect ratio
     if fig is None or ax is None:
         fig, ax = plt.subplots(figsize=(20, 10))
     ax.set_aspect("equal")
 
     # check that there were observations in this night
-    orbits["night"] = (orbits["mjd_utc"] - 0.5).astype(int) - 59638
-    mask = orbits["night"] == night
+    ephemerides["night"] = (ephemerides["mjd_utc"] - 0.5).astype(int) - 59638
+    mask = ephemerides["night"] == night
     if not np.any(mask):
         if lims == "full_schedule":
             ax.set_xlim(schedule["fieldRA"].min() - 3,
@@ -388,25 +380,27 @@ def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, orbits, truth, 
                 # go through each unique field position and add an annotation
                 for xy, label in mag_labels.items():
                     ax.annotate(label, xy=xy, ha="center", va="center", fontsize=8)
+        else:
+            print(table[table_mask]["observed"])
 
     # if colouring by orbit then just use a plain old colourbar
     if colour_by == "orbit":
-        ax.scatter(orbits["RA_deg"][mask], orbits["Dec_deg"][mask],
-                   s=s, alpha=1, c=orbits["orbit_id"][mask])
+        ax.scatter(ephemerides["RA_deg"][mask], ephemerides["Dec_deg"][mask],
+                   s=s, alpha=1, c=ephemerides["orbit_id"][mask])
         scatter = ax.scatter(truth["RA_deg"][mask], truth["Dec_deg"][mask], s=s * 10, c="tab:red")
     # if distance then use a log scale for the colourbar
     elif colour_by == "distance":
-        log_dist_from_earth = np.log10(orbits["delta_au"])
+        log_dist_from_earth = np.log10(ephemerides["delta_au"])
 
         boundaries = np.arange(-1, 1.1 + 0.2, 0.2)
         norm = BoundaryNorm(boundaries, plt.cm.plasma_r.N, clip=True)
 
-        for orb in orbits[mask]["orbit_id"].unique():
-            more_mask = orbits[mask]["orbit_id"] == orb
-            ax.plot(orbits["RA_deg"][mask][more_mask], orbits["Dec_deg"][mask][more_mask],
+        for orb in ephemerides[mask]["orbit_id"].unique():
+            more_mask = ephemerides[mask]["orbit_id"] == orb
+            ax.plot(ephemerides["RA_deg"][mask][more_mask], ephemerides["Dec_deg"][mask][more_mask],
                     color=plt.cm.plasma_r(norm(log_dist_from_earth[mask][more_mask].iloc[0])))
 
-        scatter = ax.scatter(orbits["RA_deg"][mask], orbits["Dec_deg"][mask], s=s,
+        scatter = ax.scatter(ephemerides["RA_deg"][mask], ephemerides["Dec_deg"][mask], s=s,
                              c=log_dist_from_earth[mask], norm=norm, cmap="plasma_r")
 
         if cbar:
@@ -435,10 +429,10 @@ def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, orbits, truth, 
         ax.set_ylim(schedule["fieldDec"].min() - 3,
                     schedule["fieldDec"].max() + 3)
     elif lims == "orbits":
-        ax.set_xlim(orbits["RA_deg"][mask].min() - 3,
-                    orbits["RA_deg"][mask].max() + 3)
-        ax.set_ylim(orbits["Dec_deg"][mask].min() - 3,
-                    orbits["Dec_deg"][mask].max() + 3)
+        ax.set_xlim(ephemerides["RA_deg"][mask].min() - 3,
+                    ephemerides["RA_deg"][mask].max() + 3)
+        ax.set_ylim(ephemerides["Dec_deg"][mask].min() - 3,
+                    ephemerides["Dec_deg"][mask].max() + 3)
     else:
         raise ValueError("Invalid input for lims")
 
