@@ -170,16 +170,14 @@ def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, first_
         filter_mask = joined_table["filter"] == filter_letter
         if filter_mask.any():
             mag_in_filter[filter_mask] = convert_colour_mags(joined_table[filter_mask]["VMag"],
-                                                            out_colour=filter_letter,
-                                                            in_colour="V", convention="LSST",
-                                                            asteroid_type="C")
+                                                             out_colour=filter_letter,
+                                                             in_colour="V", convention="LSST",
+                                                             asteroid_type="C")
     joined_table["mag_in_filter"] = mag_in_filter
 
     # mask those that are within the field (2.1 degrees)
-    in_current_field = np.sqrt((joined_table["fieldRA"]
-                                - joined_table["RA_deg"])**2
-                               + (joined_table["fieldDec"]
-                                  - joined_table["Dec_deg"])**2) <= 2.1
+    in_current_field = np.sqrt((joined_table["fieldRA"] - joined_table["RA_deg"])**2
+                               + (joined_table["fieldDec"] - joined_table["Dec_deg"])**2) <= 2.1
 
     bright_enough = joined_table["mag_in_filter"] < joined_table["fiveSigmaDepth"]
 
