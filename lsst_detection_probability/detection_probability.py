@@ -200,24 +200,13 @@ def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, first_
             # check how many nights it is observed on and require the min nights
             unique_nights = np.sort(this_orbit["night"].unique())
             if len(unique_nights) >= min_nights:
-                # start a count of how many nights have happened in the detection window
-                init = unique_nights[0]
-                counter = 1
-                for night in unique_nights[1:]:
-                    # if you're still within the detection window
-                    if night - init <= detection_window:
-                        # add to the counter
-                        counter += 1
+                # find every window size composed of `min_nights` contiguous nights
+                diff_nights = np.diff(unique_nights)
+                window_sizes = np.array([sum(diff_nights[i:i + min_nights - 1])
+                                        for i in range(len(diff_nights) - min_nights + 2)])
 
-                        # if you've reached the min nights then mark it as findable
-                        if counter == min_nights:
-                            findable[i] = True
-                            break
-
-                    # otherwise reset the counter and start at this night
-                    else:
-                        counter = 1
-                        init = night
+                # record whether any are short enough
+                findable[i] = any(window_sizes <= detection_window)
 
     # return the fraction of orbits that are findable
     return findable.astype(int).sum() / N_ORB, joined_table
