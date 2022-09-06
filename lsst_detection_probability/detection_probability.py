@@ -179,13 +179,19 @@ def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, first_
                                                              asteroid_type="C")
     joined_table["mag_in_filter"] = mag_in_filter
 
-    # mask those that are within the field (2.1 degrees)
-    in_current_field = np.sqrt((joined_table["fieldRA"] - joined_table["RA_deg"])**2
-                               + (joined_table["fieldDec"] - joined_table["Dec_deg"])**2) <= 2.1
-
+    # work out which are bright enough to be detected
     bright_enough = joined_table["mag_in_filter"] < joined_table["fiveSigmaDepth"]
 
-    joined_table["observed"] = np.logical_and(in_current_field, bright_enough)
+    # of those, find those which are roughly within the field (2.1 degrees)
+    # operating on a subset because SkyCoord gets slow for large datasets
+    in_current_field = np.repeat(False, len(joined_table))
+    bright_table = joined_table[bright_enough]
+    obj_pos = SkyCoord(ra=bright_table["RA_deg"], dec=bright_table["Dec_deg"], unit="degree", frame="icrs")
+    sch_pos = SkyCoord(ra=bright_table["fieldRA"], dec=bright_table["fieldDec"], unit="degree", frame="icrs")
+    in_current_field[bright_enough] = obj_pos.separation(sch_pos) <= 2.1 * u.deg
+
+    # combine the masks into a single observed boolean
+    joined_table["observed"] = np.logical_and(bright_enough, in_current_field)
 
     # return if nothing got observed
     if not joined_table["observed"].any():
