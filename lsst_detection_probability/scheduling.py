@@ -20,7 +20,7 @@ params = {'figure.figsize': (12, 8),
 plt.rcParams.update(params)
 
 
-def get_LSST_schedule(night, night_zero=59638,
+def get_LSST_schedule(night, night_zero=59638, schedule_type="predicted",
                       fields=["fieldRA", "fieldDec", "observationStartMJD", "filter", "fiveSigmaDepth"]):
     """Get the schedule for LSST (where it will point at what time)
 
@@ -37,18 +37,37 @@ def get_LSST_schedule(night, night_zero=59638,
     df : `pandas DataFrame`
         DataFrame containing individual fields
     """
-    con = sqlite3.connect('/epyc/projects/jpl_survey_sim/10yrs/opsims/march_start_v2.1_10yrs.db')
-    cur = con.cursor()
 
-    if isinstance(night, int):
-        res = cur.execute(f"select {','.join(fields)} from observations where night={night + 1}")
+    if schedule_type == "actual":
+        con = sqlite3.connect('/epyc/projects/jpl_survey_sim/10yrs/opsims/march_start_v2.1_10yrs.db')
+        cur = con.cursor()
+
+        if isinstance(night, int):
+            res = cur.execute(f"select {','.join(fields)} from observations where night={night + 1}")
+        else:
+            res = cur.execute(f"select {','.join(fields)} from observations where night between {night[0] + 1} and {night[1] + 1}")
+        df = pd.DataFrame(res.fetchall(), columns=fields)
+
+        con.close()
+
+        df["night"] = (df["observationStartMJD"] - 0.5).astype(int) - night_zero
+    elif schedule_type == "predicted":
+        first_night = get_LSST_schedule(night=night, night_zero=night_zero,
+                                        schedule_type="actual", fields=fields)
+
+        con = sqlite3.connect(f'night{night + 1}_15days.db')
+        cur = con.cursor()
+        res = cur.execute(f"select {','.join(fields)} from observations where night between {night + 2} and {night + 15}")
+        rest = pd.DataFrame(res.fetchall(), columns=fields)
+
+        con.close()
+
+        rest["night"] = (rest["observationStartMJD"] - 0.5).astype(int) - night_zero
+
+        df = pd.concat([first_night, rest])
+        df.reset_index(inplace=True)
     else:
-        res = cur.execute(f"select {','.join(fields)} from observations where night between {night[0] + 1} and {night[1] + 1}")
-    df = pd.DataFrame(res.fetchall(), columns=fields)
-
-    con.close()
-
-    df["night"] = (df["observationStartMJD"] - 0.5).astype(int) - night_zero
+        raise ValueError(f"Invalid value for `schedule_type`: {schedule_type}")
 
     return df
 

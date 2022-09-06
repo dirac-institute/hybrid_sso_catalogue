@@ -30,7 +30,8 @@ def filter_tracklets(df, min_obs=2, min_arc=1, max_time=90):
                                   df["mjd_utc"].diff().min() * 1440 < max_time))
 
 
-def get_detection_probabilities(night_start, path="../neocp/neo/", detection_window=15, min_nights=3):
+def get_detection_probabilities(night_start, path="../neocp/neo/", detection_window=15, min_nights=3,
+                                schedule_type="predicted"):
     """Get the probability that LSST will detect each object that was observed in a particular night
 
     Parameters
@@ -53,13 +54,16 @@ def get_detection_probabilities(night_start, path="../neocp/neo/", detection_win
     """
     # create a list of nights in the detection window and get schedule for them
     night_list = list(range(night_start, night_start + detection_window))
-    schedule = get_LSST_schedule(night=(night_start, night_start + detection_window - 1))
+
+    if schedule_type == "predicted":
+        full_schedule = get_LSST_schedule(night=night_start, schedule_type=schedule_type)
+    else:
+        full_schedule = get_LSST_schedule(night=(night_start, night_start + detection_window - 1),
+                                          schedule_type=schedule_type)
 
     # offset the schedule by one row and re-merge to get the previous night column
-    shifted = schedule.shift()
-    shifted = shifted.drop("observationStartMJD", axis=1)
-    shifted = shifted.rename(columns={"night": "previousNight"})
-    full_schedule = pd.merge(schedule, shifted["previousNight"], left_index=True, right_index=True)
+    shifted = full_schedule.shift()
+    full_schedule["previousNight"] = shifted["night"]
 
     # calculate the length of each night in days
     night_lengths = np.zeros(detection_window)
@@ -182,6 +186,10 @@ def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, first_
     bright_enough = joined_table["mag_in_filter"] < joined_table["fiveSigmaDepth"]
 
     joined_table["observed"] = np.logical_and(in_current_field, bright_enough)
+
+    # return if nothing got observed
+    if not joined_table["observed"].any():
+        return 0.0, joined_table
 
     # remove any nights that don't match requirements (min_obs, min_arc, max_time)
     df = joined_table[joined_table["observed"]]
