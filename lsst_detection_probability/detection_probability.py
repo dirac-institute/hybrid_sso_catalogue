@@ -96,8 +96,8 @@ def get_detection_probabilities(night_start, path="../neocp/neo/", detection_win
     probs = np.zeros(len(unique_objs))
     for i, hex_id in enumerate(unique_objs):
         start = time.time()
-        probs[i], _ = probability_from_id(hex_id, sorted_obs, distances=np.logspace(-1, 1, 50) * u.AU,
-                                          radial_velocities=np.linspace(-100, 100, 20) * u.km / u.s,
+        probs[i], _ = probability_from_id(hex_id, sorted_obs, distances=np.logspace(-1, 1, 51) * u.AU,
+                                          radial_velocities=np.linspace(-50, 10, 21) * u.km / u.s,
                                           first_visit_times=first_visit_times, full_schedule=full_schedule,
                                           night_lengths=night_lengths, night_list=night_list,
                                           detection_window=detection_window, min_nights=min_nights)
