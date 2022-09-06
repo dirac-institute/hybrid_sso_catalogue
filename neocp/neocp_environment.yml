@@ -15,3 +15,4 @@ dependencies:
   - difi
   - pytables
   - thor
+  - rubin_sim
