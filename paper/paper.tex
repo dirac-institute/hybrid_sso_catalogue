@@ -140,14 +140,14 @@ Overall, it is clear that if we proceed in the same manner as is currently recom
 
 \subsection{NEOCP without LSST Detections}\label{sec:no_LSST_detections}
 
-LSST will be able to detect and characterise many potential NEOs without any external input. This means that many of the objects submitted to the NEOCP will actual result in wasted follow up time by the community. We assess the magnitude of this effect using the python package \texttt{difi}\footnote{\url{https://github.com/moeyensj/difi}} \needcite{}. This package calculates which objects are detected by LSST, where a detection is defined as occurring when the same object is observed on at least 3 separate nights, each with at least 2 observations separated by at most 90 minutes \needcite{}.
+LSST will be able to detect and characterise many potential NEOs without any external input. This means that many of the objects submitted to the NEOCP will actual result in wasted follow up time by the community. We assess the magnitude of this effect using the python package \texttt{difi} \citep{difi}. This package calculates which objects are detected by LSST, where a detection is defined as occurring when the same object is observed on at least 3 separate nights within a 15 day window, each with at least 2 observations separated by at most 90 minutes \needcite{}.
 
-In Figure~\ref{fig:neocp_traffic_unfindable}, we repeat Figure~\ref{fig:neocp_traffic} but now only including objects that would not be detected by LSST alone. This represents a best case scenario in which we had foreknowledge of which observed objects would be detected. In this scenario we see that the traffic from LSST rarely exceeds more than 100 objects and is often only a handful. Similarly the purity is much higher, with an average of around 25\%. We conclude that if we were to know whether an object would be detected by LSST, the load on the NEOCP would remain at manageable levels.
+In Figure~\ref{fig:neocp_traffic_unfindable}, we repeat Figure~\ref{fig:neocp_traffic}, but now only including objects that would not be detected by LSST alone. This represents a best case scenario in which we had foreknowledge of which observed objects would be detected. In this scenario we see that the traffic from LSST rarely exceeds more than 100 objects and is often only a handful. Similarly the purity is much higher, with an average of around 25\%. We conclude that if we were to know whether an object would be detected by LSST, the load on the NEOCP would remain at manageable levels.
 
-\subsection{Estimating LSST Detection Probability}
-We now propose a method of \textit{predicting} whether an observed object will be detected by LSST in order to emulate the best case scenario described in Section~\ref{sec:no_LSST_detections}.
+\section{Discussion} \label{sec:discussion}
 
-For an object to be detected by LSST, it must be observed at least twice on at least three separate nights. Therefore, one can predict whether an object will be detected simply by whether it will be in LSST's field of view on the following night - if it will pass out of the field of view by the next night then it will not be detected by LSST and should be submitted to the NEOCP.
+\subsection{Estimating LSST Detection Probability}\label{sec:pred_alg}
+We now propose a method of \textit{predicting} whether an observed object will be detected by LSST in order to emulate the best case scenario described in Section~\ref{sec:no_LSST_detections}. This requires one to predict both the location and magnitude of the object on subsequent nights, as well as the visit schedule of LSST.
 
 In order to determine the location of an object on the following night one needs to know its orbit. Each object on a given night consists of at least two observations
 \begin{equation}
@@ -155,23 +155,23 @@ In order to determine the location of an object on the following night one needs
 \end{equation}
 where $\alpha$ is the right ascension, $\delta$ is the declination and $t$ is the time of observation. One can then determine the proper motion of the object on the sky, ($\dot{\alpha}$, $\dot{\delta}$), by calculating the change in position over time between the two observations. This determines 4 and the 6 orbital elements, but the distance, $D$ and radial velocity, $\dot{D}$ of the object are unconstrained.
 
-We draw a sample of $D$ uniformly in log-space between $0.1$-$100 \unit{AU}$ and a sample of $\dot{D}$ uniformly between $-50$-$50 \unit{km}{s^{-1}}$ to create a grid of $(D, \dot{D})$. Combining these with the measured $(\alpha, \delta, \dot{\alpha}, \dot{\delta})$ values (with some scatter to account for the detector uncertainty), we create a series of possible variant orbits for the object. We adjust these orbits to account for the light travel time using \texttt{THOR} \citep{Moeyens+2021} and then propagate them until the next night using \texttt{OpenOrb} \citep{Granvik+2009}. \todo{Check through this paragraph to check we actually do this once I actually do it haha}.
+We draw a sample of $D$ uniformly in log-space between $[0.1, 100] \unit{AU}$ and a sample of $\dot{D}$ uniformly between $[-100, 100] \unit{km}{s^{-1}}$ to create a grid of $(D, \dot{D})$. Combining these with the measured $(\alpha, \delta, \dot{\alpha}, \dot{\delta})$ values (with some scatter to account for the detector uncertainty), we create a series of possible variant orbits for the object and adjust them to account for the light travel time using \texttt{THOR} \citep{Moeyens+2021}. Since we are only interested in NEOs, we mask out any orbits that have a perihelion distance of greater than $1.3 \unit{AU}$. Additionally, we determine the absolute magnitude of the object for each orbit using the HG-system. We convert the apparent magnitudes of the observations in the first night to V-band magnitudes using the LSST colour definitions, assuming a C-type asteroid \citep{Jones+2018}. We then use the mean observed V-band magnitude, the assumed distances and fixed slope parameter of $G = 0.15$ \needcite{} to calculate the current absolute magnitude.
 
-We estimate the probability of the object being detected by LSST, $P({\rm detect})$, as 
+Finally, using \texttt{OpenOrb}, we produce ephemerides for the orbits for each visit in the following 14 nights of the predicted schedule \citep{Granvik+2009}. For each orbit and each field, we assume an observation will occur if the object is within $2.1^\circ$ of the centre of the field and has an apparent magnitude brighter than the $5\sigma$ depth of field. Each orbit is defined as producing a detection if it has at least 2 observations on at least 3 nights in the 15 day window, requiring that the minimum arc length is 1 arcsecond and that the maxmimum separation between observations is 90 minutes.
+
+We estimate the probability of the object being detected by LSST, $P({\rm detect})$, as a weighted sum
 \begin{equation}
-    P({\rm detect}) \propto \sum_{i = 1}^{N} \sum_{j = 1}^{M} \theta_{i, j} P(D_i) P(\dot{D}_j)
+    P({\rm detect}) \propto \sum_{i = 1}^{N_{\rm orbits}} \theta_{i} w_i
 \end{equation}
-where $\theta_{i, j}$ is a heaviside step function that is 1 if the orbit corresponding to distance $D_i$ and radial velocity $\dot{D}_j$ results in the object remaining in the LSST field of view and 0 otherwise, $P(D_i)$ is the probability of the distance $D_i$ occurring in the hybrid catalogue and $P(\dot{D}_j)$ is the probability of the radial velocity $\dot{D}_j$ occurring in the hybrid catalogue.
+where $\theta_{i}$ is a heaviside step function that is 1 if the orbit produces a detection and 0 otherwise, and $w_i$ is the weight associated with that orbit \todo{which is yet to be determined}.
 
-\todo{Need to explain how we know where the detector is (the scheduler thing that Mario talks about)}
-
-\todo{Demonstrate the efficiency of this method with some plots}
-
-\todo{Maybe also add plots of the D/dot(D) distributions of HC}
-
-\section{Discussion} \label{sec:discussion}
-
-\todo{Some of the results may move here, unsure what else}
+\subsection{Accuracy of prediction algorithm}
+\todo{Demonstrate the efficiency of this method with some plots like fig 3}
+\begin{figure*}[htb]
+    \centering
+    \includegraphics[width=\textwidth]{prediction_algorithm.png}
+    \caption{A demonstration of the prediction algorithm described in Section~\ref{sec:pred_alg}. \textbf{Left:} A confusion matrix representing the algorithm's ability to predict the detectability of an object. \textbf{Right:} A distribution of assigned probabilities, split into a population of objects that are actually detected and a population that are not.}
+\end{figure*}
 
 \section{Conclusion \& Summary} \label{sec:conclusion}
 
@@ -188,7 +188,7 @@ where $\theta_{i, j}$ is a heaviside step function that is 1 if the orbit corres
     Acknowledgements
 \end{acknowledgements}
 
-\software{\dig{} v0.19.2 \citep{Keys+2019}, \texttt{OpenOrb} \citep{Granvik+2009}, \texttt{difi}, \texttt{THOR} \citep{Moeyens+2021}, \texttt{astroML} \citep{VanderPlas+2012,VanderPlas+2014}, \texttt{scipy} \citep{Virtanen+2020}}
+\software{\dig{} v0.19.2 \citep{Keys+2019}, \texttt{OpenOrb} \citep{Granvik+2009}, \texttt{difi} \citep{difi}, \texttt{THOR} \citep{Moeyens+2021}, \texttt{astroML} \citep{VanderPlas+2012,VanderPlas+2014}, \texttt{scipy} \citep{Virtanen+2020}}
 
 \bibliographystyle{aasjournal}
 \bibliography{paper}{}
@@ -199,17 +199,15 @@ where $\theta_{i, j}$ is a heaviside step function that is 1 if the orbit corres
 \appendix
 
 \section{Assessing quality of hybrid catalogue}\label{app:hybrid_quality}
+It is essential that the underlying distributions of the hybrid catalogue do not differ significantly from \sss{} so that we still accurately reproduce the solar system. In Figure~\ref{fig:hybrid_vs_s3m_dists}, we show the distributions of the absolute magnitude and six orbital elements in both the hybrid catalogue and \sss{}. It is evident that the distributions are essentially identical.
 
+As a further check, we compared \mpco{} to the objects that were removed from \sss{}, since these should have nearly identical distributions. In Figure~\ref{fig:density_compare}, we show a comparison of the densities for the heliocentric $x$ and $y$ and it is clear that these distributions are left unchanged in the hybrid catalogue.
 \begin{figure*}[htb]
     \centering
     \includegraphics[width=\textwidth]{hybrid_vs_s3m_distributions.pdf}
     \caption{A comparison of the parameter distributions of \sss{} \citep{Grav+2011} and the hybrid catalogue we created.}
     \label{fig:hybrid_vs_s3m_dists}
 \end{figure*}
-
-It is essential that the underlying distributions of the hybrid catalogue do not differ significantly from \sss{} so that we still accurately reproduce the solar system. In Figure~\ref{fig:hybrid_vs_s3m_dists}, we show the distributions of the absolute magnitude and six orbital elements in both the hybrid catalogue and \sss{}. It is evident that the distributions are essentially identical.
-
-As a further check, we compared \mpco{} to the objects that were removed from \sss{}, since these should have nearly identical distributions. In Figure~\ref{fig:density_compare}, we show a comparison of the densities for the heliocentric $x$ and $y$ and it is clear that these distributions are left unchanged in the hybrid catalogue.
 \begin{figure}[htb]
     \centering
     \includegraphics[width=0.48\textwidth]{density_comparisons.pdf}
