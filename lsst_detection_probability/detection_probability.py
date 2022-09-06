@@ -278,7 +278,8 @@ def first_last_pos_from_id(hex_id, sorted_obs, s3m_cart, distances, radial_veloc
     return ephemerides, truth
 
 
-def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, ephemerides, truth, night,hex_id,
+def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, ephemerides, joined_table,
+                                   truth, night, hex_id,
                                    colour_by="distance", lims="full_schedule", field_radius=2.1, s=10,
                                    filter_mask="all", show_mag_labels=False,
                                    fig=None, ax=None, show=True, ax_labels=True, cbar=True):
@@ -314,33 +315,39 @@ def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, ephemerides, tr
         coll = PatchCollection(patches, edgecolors=colour, facecolors="none", linewidths=lw)
         ax.add_collection(coll)
 
-        # if we're doing the full schedule
+        # only do the following for the full schedule
         if colour == "black":
+            # annotate the number of fields in this night
             ax.annotate(f"{len(table[table_mask])} fields", xy=(0.98, 0.98), xycoords="axes fraction",
                         ha="right", va="top", fontsize=20)
 
+            # get the true observations for this night
             obs_dfs = [pd.read_hdf(f"../neocp/neo/filtered_visit_scores_{i:03d}.h5").sort_values("FieldMJD")[["FieldMJD", "night", "MaginFilter", "filter"]]
                for i in [0, 1]]
             all_obs = pd.concat(obs_dfs)
             all_obs.reset_index(inplace=True)
-            nightly_obs = all_obs[all_obs["night"] == night]
+            nightly_obs = all_obs[(all_obs["night"] == night) & (all_obs["hex_id"] == hex_id)]
 
+            # if there were observations on this night
             if not nightly_obs.empty:
-                det_times = nightly_obs[nightly_obs["hex_id"] == hex_id]["FieldMJD"].values
+                # work out in which fields the detections occurred
+                det_times = nightly_obs["FieldMJD"].values
+                field_times = table[table_mask]["observationStartMJD"]
+                ids = [(det_time - field_times[field_times <= det_time]).idxmin() for det_time in det_times]
+                det_fields = table.loc[ids]
 
-                if len(det_times) != 0:
-                    ids = [(thing - table[table_mask]["observationStartMJD"][table[table_mask]["observationStartMJD"] <= thing]).idxmin() for thing in det_times]
-                    det_fields = table.loc[ids]
+                # add an inner circle marking the detection
+                ra_field = det_fields["fieldRA"]
+                dec_field = det_fields["fieldDec"]
+                patches = [plt.Circle(center, field_radius * 0.8) for center in np.transpose([ra_field, dec_field])]
+                coll = PatchCollection(patches, edgecolors="#13f2a8", facecolors="none", linewidths=2)
+                ax.add_collection(coll)
 
-                    ra_field = det_fields["fieldRA"]
-                    dec_field = det_fields["fieldDec"]
-                    patches = [plt.Circle(center, field_radius * 0.8) for center in np.transpose([ra_field, dec_field])]
-                    coll = PatchCollection(patches, edgecolors="#13f2a8", facecolors="none", linewidths=2)
-                    ax.add_collection(coll)
+                # add an annotation writing the total number of observations
+                ax.annotate(f"{len(det_times)} observations", xy=(0.98, 0.93), xycoords="axes fraction",
+                            ha="right", va="top", fontsize=20, color="#13f2a8")
 
-                    ax.annotate(f"{len(det_times)} observations", xy=(0.98, 0.93), xycoords="axes fraction",
-                                ha="right", va="top", fontsize=20, color="#13f2a8")
-
+            # if we want to see the magnitude labels
             if show_mag_labels:
 
                 print("Previous magnitudes:", night)
@@ -367,8 +374,23 @@ def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, ephemerides, tr
                 # go through each unique field position and add an annotation
                 for xy, label in mag_labels.items():
                     ax.annotate(label, xy=xy, ha="center", va="center", fontsize=8)
-        else:
-            print(table[table_mask]["observed"])
+        
+        # if we are doing the reachable schedule
+        if colour == "tab:green":
+            pred_night_detections = joined_table[(joined_table["night"] == night)
+                                           & joined_table["observed"]]
+            det_times = pred_night_detections["mjd_utc"].unique()
+            if len(det_times) > 0:
+                field_times = table[table_mask]["observationStartMJD"]
+                ids = [(det_time - field_times[field_times <= det_time]).idxmin() for det_time in det_times]
+                det_fields = table.loc[ids]
+
+                # add an inner circle marking the detection
+                ra_field = det_fields["fieldRA"]
+                dec_field = det_fields["fieldDec"]
+                patches = [plt.Circle(center, field_radius * 0.6) for center in np.transpose([ra_field, dec_field])]
+                coll = PatchCollection(patches, edgecolors="tab:green", facecolors="none", linewidths=2, linestyle="dotted")
+                ax.add_collection(coll)
 
     # if colouring by orbit then just use a plain old colourbar
     if colour_by == "orbit":
