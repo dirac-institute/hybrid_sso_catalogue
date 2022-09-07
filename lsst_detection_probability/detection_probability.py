@@ -8,6 +8,9 @@ from matplotlib.colors import BoundaryNorm
 from matplotlib.collections import PatchCollection
 import time
 
+from rubin_sim.utils import LsstCameraFootprint
+import os.path
+
 import thor
 from thor.backend import PYOORB
 backend = PYOORB()
@@ -182,16 +185,30 @@ def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, first_
     # work out which are bright enough to be detected
     bright_enough = joined_table["mag_in_filter"] < joined_table["fiveSigmaDepth"]
 
-    # of those, find those which are roughly within the field (2.1 degrees)
-    # operating on a subset because SkyCoord gets slow for large datasets
-    in_current_field = np.repeat(False, len(joined_table))
-    bright_table = joined_table[bright_enough]
-    obj_pos = SkyCoord(ra=bright_table["RA_deg"], dec=bright_table["Dec_deg"], unit="degree", frame="icrs")
-    sch_pos = SkyCoord(ra=bright_table["fieldRA"], dec=bright_table["fieldDec"], unit="degree", frame="icrs")
-    in_current_field[bright_enough] = obj_pos.separation(sch_pos) <= 2.1 * u.deg
+    # next we want only objects that are in the camera footprint
+    camera = LsstCameraFootprint(footprint_file=os.path.join("/epyc/ssd/users/tomwagg/rubin_sim_data/",
+                                                             "maf", "fov_map.npz"))
+    in_footprint = np.repeat(False, len(joined_table))
+
+    # loop over each of the unique field times
+    unique_field_times = joined_table["mjd_utc"].unique()
+    for field_time in unique_field_times:
+        # get just the table for this time
+        time_mask = joined_table["mjd_utc"] == field_time
+        field_table = joined_table[time_mask]
+        
+        # camera returns indices so we can convert that to a mask like so
+        all_inds = np.arange(len(field_table))
+        observed_inds = camera(field_table["RA_deg"].values, field_table["Dec_deg"].values,
+                               field_table["fieldRA"].iloc[0], field_table["fieldDec"].iloc[0],
+                               field_table["rotSkyPos"].iloc[0])
+        observed_mask = np.isin(all_inds, observed_inds)
+        
+        # add that mask to the overall one
+        in_footprint[time_mask] = observed_mask
 
     # combine the masks into a single observed boolean
-    joined_table["observed"] = np.logical_and(bright_enough, in_current_field)
+    joined_table["observed"] = np.logical_and(in_footprint, bright_enough)
 
     # return if nothing got observed
     if not joined_table["observed"].any():
