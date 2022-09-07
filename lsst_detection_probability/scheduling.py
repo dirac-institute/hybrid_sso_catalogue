@@ -21,7 +21,8 @@ plt.rcParams.update(params)
 
 
 def get_LSST_schedule(night, night_zero=59638, schedule_type="predicted",
-                      fields=["fieldRA", "fieldDec", "observationStartMJD", "filter", "fiveSigmaDepth"]):
+                      fields=["fieldRA", "fieldDec", "observationStartMJD",
+                              "filter", "fiveSigmaDepth", "rotSkyPos"]):
     """Get the schedule for LSST (where it will point at what time)
 
     Parameters
@@ -30,7 +31,7 @@ def get_LSST_schedule(night, night_zero=59638, schedule_type="predicted",
         Which night you want the schedule for
     fields : `list`, optional
         Fields you want from the database, by default ["fieldRA", "fieldDec", "observationStartMJD",
-        "filter", "fiveSigmaDepth"]
+        "filter", "fiveSigmaDepth", "rotSkyPos"]
 
     Returns
     -------
