@@ -100,11 +100,11 @@ def get_detection_probabilities(night_start, obj_type="neo", detection_window=15
 
     # work out which visit files contain the observations
     start_file = find_first_file(list(range(night_start - detection_window + 1, night_start)))
-    end_file = find_last_file(night_start)
+    end_file = find_last_file(night_list)
 
     # either open one file or concatenate a bunch of them
-    if start_file == end_file:
-        all_obs = pd.read_hdf(path + f"filtered_visit_scores_{start_file:03d}.h5").sort_values("FieldMJD")
+    if start_file == end_file or start_file is None:
+        all_obs = pd.read_hdf(path + f"filtered_visit_scores_{end_file:03d}.h5").sort_values("FieldMJD")
     else:
         obs_dfs = [pd.read_hdf(path + f"filtered_visit_scores_{i:03d}.h5").sort_values("FieldMJD")
                     for i in range(start_file, end_file + 1)]
@@ -125,16 +125,19 @@ def get_detection_probabilities(night_start, obj_type="neo", detection_window=15
     print("Masks applied to observation files")
 
     # create a (default)dict of the nights on which observations occurred
-    dd = defaultdict(list)
-    s = prior_obs.groupby("hex_id").apply(lambda x: list(x["night"].unique()))
-    prior_obs_nights = s.to_dict(dd)
+    if prior_obs.empty:
+        prior_obs_nights = defaultdict(list)
+    else:
+        dd = defaultdict(list)
+        s = prior_obs.groupby("hex_id").apply(lambda x: list(x["night"].unique()))
+        prior_obs_nights = s.to_dict(into=dd)
 
-    # identify objects that would not already have been detected before this night
-    not_already_found_ids = s[s.apply(len) < min_nights].index
+        # identify objects that would not already have been detected before this night
+        already_found_ids = s[s.apply(len) >= min_nights].index
 
-    # reduce the original observations to include only these
-    sorted_obs = sorted_obs.loc[not_already_found_ids].sort_values(["ObjID", "FieldMJD"])
-    unique_objs = sorted_obs.index.unique()
+        # reduce the original observations to include only these
+        sorted_obs = sorted_obs[~sorted_obs.index.isin(already_found_ids)].sort_values(["ObjID", "FieldMJD"])
+        unique_objs = sorted_obs.index.unique()
 
     print("Everything is prepped and ready for probability calculations - Time to create some offspring")
 
@@ -156,7 +159,7 @@ def get_detection_probabilities(night_start, obj_type="neo", detection_window=15
 
 def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, prior_obs_nights, first_visit_times,
                         full_schedule, night_lengths, night_list, detection_window=15, min_nights=3,
-                        ret_joined_table=False):
+                        ret_joined_table=False, verbose=False):
     """Get the probability of an object with a particular ID of being detected by LSST alone given
     observations on a single night.
 
@@ -290,7 +293,9 @@ def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, prior_
 
     # return the fraction of orbits that are findable
     prob = findable.astype(int).sum() / N_ORB
-    print(hex_id, prob)
+    if verbose:
+        print(hex_id, prob)
+
     if ret_joined_table:
         return prob, joined_table
     else:
