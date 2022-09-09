@@ -50,6 +50,14 @@ def find_first_file(night_range):
                 return i
 
 
+def find_last_file(night):
+    file = None
+    for i, f in enumerate(f2n):
+        if night in f:
+            file = i
+    return file
+
+
 def split_observations(obs, n_cores=28):
     """Split observations over many cores but keep groups of tracklets together so that they get masked
     correctly!

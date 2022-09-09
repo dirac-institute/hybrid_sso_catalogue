@@ -11,6 +11,9 @@ import time
 from rubin_sim.utils import LsstCameraFootprint
 import os.path
 
+from multiprocessing import Pool
+from functools import partial
+
 import thor
 from thor.backend import PYOORB
 backend = PYOORB()
@@ -21,7 +24,7 @@ from magnitudes import convert_colour_mags
 
 import sys
 sys.path.append("../neocp")
-from lsst_neocp import find_first_file
+from lsst_neocp import find_first_file, find_last_file
 
 
 def filter_tracklets(df, min_obs=2, min_arc=1, max_time=90):
@@ -34,7 +37,7 @@ def filter_tracklets(df, min_obs=2, min_arc=1, max_time=90):
 
 
 def get_detection_probabilities(night_start, path="../neocp/neo/", detection_window=15, min_nights=3,
-                                schedule_type="predicted"):
+                                schedule_type="predicted", pool_size=48, save_results=True):
     """Get the probability that LSST will detect each object that was observed in a particular night
 
     Parameters
@@ -93,24 +96,26 @@ def get_detection_probabilities(night_start, path="../neocp/neo/", detection_win
     sorted_obs = visit_file[obs_mask].sort_values(["ObjID", "FieldMJD"])
     unique_objs = sorted_obs.index.unique()
 
-    print("Everything is prepped and ready for probability calculations")
+    print("Everything is prepped and ready for probability calculations - Time to create some offspring")
 
     # calculate detection probabilities
-    probs = np.zeros(len(unique_objs))
-    for i, hex_id in enumerate(unique_objs):
-        start = time.time()
-        probs[i], _ = probability_from_id(hex_id, sorted_obs, distances=np.logspace(-1, 1, 51) * u.AU,
-                                          radial_velocities=np.linspace(-50, 10, 21) * u.km / u.s,
-                                          first_visit_times=first_visit_times, full_schedule=full_schedule,
-                                          night_lengths=night_lengths, night_list=night_list,
-                                          detection_window=detection_window, min_nights=min_nights)
-        print(f"{i}/{len(unique_objs)}: {time.time() - start:1.2f}, {hex_id}, {probs[i]:1.3f}")
+    with Pool(pool_size) as pool:
+        probs = pool.map(partial(probability_from_id, sorted_obs=sorted_obs,
+                                 distances=np.logspace(-1, 1, 51) * u.AU,
+                                 radial_velocities=np.linspace(-50, 10, 21) * u.km / u.s,
+                                 first_visit_times=first_visit_times, full_schedule=full_schedule,
+                                 night_lengths=night_lengths, night_list=night_list,
+                                 detection_window=detection_window, min_nights=min_nights), unique_objs)
+
+    if save_results:
+        np.save(f"latest_runs/res_night{night_start}.npy")
 
     return probs, unique_objs
 
 
 def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, first_visit_times,
-                        full_schedule, night_lengths, night_list, detection_window=15, min_nights=3):
+                        full_schedule, night_lengths, night_list, detection_window=15, min_nights=3,
+                        ret_joined_table=False):
     """Get the probability of an object with a particular ID of being detected by LSST alone given
     observations on a single night.
 
@@ -153,17 +158,18 @@ def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, first_
 
     # get the orbits for the entire reachable schedule with the grid of distances and RVs
     ephemerides = variant_orbit_ephemerides(ra=rows.iloc[0]["AstRA(deg)"] * u.deg,
-                                       dec=rows.iloc[0]["AstDec(deg)"] * u.deg,
-                                       ra_end=rows.iloc[-1]["AstRA(deg)"] * u.deg,
-                                       dec_end=rows.iloc[-1]["AstDec(deg)"] * u.deg,
-                                       delta_t=(rows.iloc[-1]["FieldMJD"] - rows.iloc[0]["FieldMJD"]) * u.day,
-                                       obstime=Time(rows.iloc[0]["FieldMJD"], format="mjd"),
-                                       distances=distances,
-                                       radial_velocities=radial_velocities,
-                                       apparent_mag=apparent_mag,
-                                       eph_times=Time(reachable_schedule["observationStartMJD"].values,
-                                                      format="mjd"),
-                                       only_neos=True)
+                                            dec=rows.iloc[0]["AstDec(deg)"] * u.deg,
+                                            ra_end=rows.iloc[-1]["AstRA(deg)"] * u.deg,
+                                            dec_end=rows.iloc[-1]["AstDec(deg)"] * u.deg,
+                                            delta_t=(rows.iloc[-1]["FieldMJD"] - rows.iloc[0]["FieldMJD"]) * u.day,
+                                            obstime=Time(rows.iloc[0]["FieldMJD"], format="mjd"),
+                                            distances=distances,
+                                            radial_velocities=radial_velocities,
+                                            apparent_mag=apparent_mag,
+                                            eph_times=Time(reachable_schedule["observationStartMJD"].values,
+                                                            format="mjd"),
+                                            only_neos=True,
+                                            num_jobs=1)
     ephemerides["orbit_id"] = ephemerides["orbit_id"].astype(int)
     orbit_ids = ephemerides["orbit_id"].unique()
 
@@ -240,7 +246,12 @@ def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, first_
                 findable[i] = any(window_sizes <= detection_window)
 
     # return the fraction of orbits that are findable
-    return findable.astype(int).sum() / N_ORB, joined_table
+    prob = findable.astype(int).sum() / N_ORB
+    print(hex_id, prob)
+    if ret_joined_table:
+        return prob, joined_table
+    else:
+        return prob
 
 
 def get_reachable_schedule(rows, first_visit_times, night_list, night_lengths, full_schedule):
@@ -253,7 +264,8 @@ def get_reachable_schedule(rows, first_visit_times, night_list, night_lengths, f
                                              obstime=Time(rows.iloc[0]["FieldMJD"], format="mjd"),
                                              distances=[1] * u.AU,
                                              radial_velocities=[2] * u.km / u.s,
-                                             eph_times=Time(first_visit_times, format="mjd"))
+                                             eph_times=Time(first_visit_times, format="mjd"),
+                                             num_jobs=1)
 
     # create some nominal field size
     FIELD_SIZE = 2.1 * 5
