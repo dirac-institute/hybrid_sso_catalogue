@@ -56,7 +56,7 @@ def get_LSST_schedule(night, night_zero=59638, schedule_type="predicted",
         first_night = get_LSST_schedule(night=night, night_zero=night_zero,
                                         schedule_type="actual", fields=fields)
 
-        con = sqlite3.connect(f'night{night + 1}_15days.db')
+        con = sqlite3.connect(f'/epyc/projects/hybrid-sso-catalogs/lsst_detection_probability/predicted_schedules/night{night + 1}_15days.db')
         cur = con.cursor()
         res = cur.execute(f"select {','.join(fields)} from observations where night between {night + 2} and {night + 15}")
         rest = pd.DataFrame(res.fetchall(), columns=fields)
