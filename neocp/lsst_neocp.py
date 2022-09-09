@@ -50,11 +50,12 @@ def find_first_file(night_range):
                 return i
 
 
-def find_last_file(night):
+def find_last_file(night_range):
     file = None
-    for i, f in enumerate(f2n):
-        if night in f:
-            file = i
+    for night in night_range:
+        for i, f in enumerate(f2n):
+            if night in f:
+                file = i
     return file
 
 
