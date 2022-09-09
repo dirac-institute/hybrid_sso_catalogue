@@ -41,7 +41,8 @@ plt.rcParams.update(params)
 def variant_orbit_ephemerides(ra, dec, ra_end, dec_end, delta_t, obstime, distances, radial_velocities,
                               sigma_ra=0.1 * u.arcsecond, sigma_dec=0.1 * u.arcsecond, apparent_mag=None,
                               eph_times=None, coords="heliocentriceclipticiau76", location="Gemini South",
-                              obs_code="I11", pm_ra_cosdec=None, pm_dec=None, only_neos=False, verbose=False):
+                              obs_code="I11", pm_ra_cosdec=None, pm_dec=None, only_neos=False, verbose=False,
+                              num_jobs="auto", chunk_size=100):
     """Generate ephemerides for a series of variant orbits for an observed object without constraints on its
     distance and radial velocity.
 
@@ -178,17 +179,18 @@ def variant_orbit_ephemerides(ra, dec, ra_end, dec_end, delta_t, obstime, distan
 
     # if you only want NEO orbits then mask anything with a perihelion above 1.3 AU
     if only_neos:
-        orbits_class.keplerian = thor.kepler.convertOrbitalElements(orbits_class.cartesian,
-                                                                    "cartesian", "keplerian")
         perihelion = orbits_class.keplerian[:, 0] * (1 - orbits_class.keplerian[:, 1])
-        orbits_class = orbits_class[perihelion < 1.3]
+        orbits_class = thor.Orbits(orbits=corrected_orbits[perihelion < 1.3],
+                                   epochs=Time(corrected_t0[perihelion < 1.3], format="mjd"),
+                                   H=H[perihelion < 1.3])
 
     # default to one day after the observation
     if eph_times is None:
         eph_times = np.atleast_1d(obstime + 1)
 
     # use pyoorb (through THOR) to get the emphemeris at the supplied times
-    df = backend.generateEphemeris(orbits=orbits_class, observers = {obs_code: eph_times})
+    df = backend.generateEphemeris(orbits=orbits_class, observers = {obs_code: eph_times},
+                                   num_jobs=num_jobs, chunk_size=chunk_size)
 
     return df
 
