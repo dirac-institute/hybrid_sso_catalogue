@@ -163,6 +163,7 @@ def variant_orbit_ephemerides(ra, dec, ra_end, dec_end, delta_t, obstime, distan
     # use THOR to account for light travel time
     corrected_orbits, lt = thor.addLightTime(orbits=orbits, t0=t0, observer_positions=observer_positions,
                                              lt_tol=1e-10, mu=Constants.MU, max_iter=1000, tol=1e-15)
+    lt = np.nan_to_num(lt, nan=0.0)
     corrected_t0 = t0 - lt
 
     if apparent_mag is None:
