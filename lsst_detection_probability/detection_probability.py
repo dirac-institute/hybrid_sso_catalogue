@@ -264,7 +264,10 @@ def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, prior_
 
     # return if nothing got observed
     if not joined_table["observed"].any():
-        return 0.0, joined_table
+        if ret_joined_table:
+            return 0.0, joined_table
+        else:
+            return 0.0
 
     # remove any nights that don't match requirements (min_obs, min_arc, max_time)
     df = joined_table[joined_table["observed"]]
