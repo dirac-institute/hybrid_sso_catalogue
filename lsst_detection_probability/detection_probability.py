@@ -119,7 +119,7 @@ def get_detection_probabilities(night_start, obj_type="neo", detection_window=15
     # get the sorted observations for the start night (that have digest2 > 65, >= 3 obs and not yet found)
     sorted_obs = all_obs[(all_obs["night"] == night_start)
                          & (all_obs["scores"] >= 65)
-                         & (~np.isin(all_obs["hex_id"], already_found_ids))
+                         & (~np.isin(all_obs.index, already_found_ids))
                          & (all_obs["n_obs"] >= 3)].sort_values(["ObjID", "FieldMJD"])
     unique_objs = sorted_obs.index.unique()
 
