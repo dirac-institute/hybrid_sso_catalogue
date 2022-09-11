@@ -111,10 +111,15 @@ def get_detection_probabilities(night_start, obj_type="neo", detection_window=15
         all_obs = pd.concat(obs_dfs)
 
     print("Observation files read in")
+
+    # work out which objects would have already been found before tonight
+    detection_nights = pd.read_hdf(f"findable_obs_{obj_type}.h5")
+    already_found_ids = detection_nights[detection_nights < night_start].index
     
-    # get the sorted observations for the start night (that have digest2 > 65 and at least 3 observations)
+    # get the sorted observations for the start night (that have digest2 > 65, >= 3 obs and not yet found)
     sorted_obs = all_obs[(all_obs["night"] == night_start)
                          & (all_obs["scores"] >= 65)
+                         & (~np.isin(all_obs["hex_id"], already_found_ids))
                          & (all_obs["n_obs"] >= 3)].sort_values(["ObjID", "FieldMJD"])
     unique_objs = sorted_obs.index.unique()
 
@@ -131,13 +136,6 @@ def get_detection_probabilities(night_start, obj_type="neo", detection_window=15
         dd = defaultdict(list)
         s = prior_obs.groupby("hex_id").apply(lambda x: list(x["night"].unique()))
         prior_obs_nights = s.to_dict(into=dd)
-
-        # identify objects that would not already have been detected before this night
-        already_found_ids = s[s.apply(len) >= min_nights].index
-
-        # reduce the original observations to include only these
-        sorted_obs = sorted_obs[~sorted_obs.index.isin(already_found_ids)].sort_values(["ObjID", "FieldMJD"])
-        unique_objs = sorted_obs.index.unique()
 
     print("Everything is prepped and ready for probability calculations - Time to create some offspring")
 
@@ -283,8 +281,11 @@ def probability_from_id(hex_id, sorted_obs, distances, radial_velocities, prior_
 
         # if the orbit actually exists (if it hasn't been filtered out)
         if not this_orbit.empty:
+            # combine any prior observations with the predicted ones
+            combined_nights = np.concatenate((prior_obs_nights[hex_id], this_orbit["night"]))
+            unique_nights = np.sort(np.unique(combined_nights))
+
             # check how many nights it is observed on and require the min nights
-            unique_nights = np.concatenate((prior_obs_nights[hex_id], np.sort(this_orbit["night"].unique())))
             if len(unique_nights) >= min_nights:
                 # find every window size composed of `min_nights` contiguous nights
                 diff_nights = np.diff(unique_nights)
