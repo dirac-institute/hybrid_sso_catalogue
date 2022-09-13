@@ -64,6 +64,8 @@ def get_detection_probabilities(night_start, obj_type="neo", detection_window=15
     unique_objs : `list`
         List of unique hex ids that have digest2 > 65 that were observed on `night_start`
     """
+    start = time.time()
+    lap = time.time()
     path = f"/epyc/projects/hybrid-sso-catalogs/neocp/{obj_type}/"
 
     # create a list of nights in the detection window and get schedule for them
@@ -96,7 +98,8 @@ def get_detection_probabilities(night_start, obj_type="neo", detection_window=15
     last_times_ind = np.array(list(full_schedule[night_transition].index[1:]) + [len(full_schedule)]) - 1
     last_visit_times = full_schedule.loc[last_times_ind]["observationStartMJD"].values
 
-    print("Schedule is loaded in and ready!")
+    print(f"[{time.time() - lap:1.1f}s] Schedule is loaded in and ready!")
+    lap = time.time()
 
     # work out which visit files contain the observations
     start_file = find_first_file(list(range(night_start - detection_window + 1, night_start)))
@@ -110,24 +113,29 @@ def get_detection_probabilities(night_start, obj_type="neo", detection_window=15
                     for i in range(start_file, end_file + 1)]
         all_obs = pd.concat(obs_dfs)
 
-    print("Observation files read in")
-
-    # work out which objects would have already been found before tonight
-    detection_nights = pd.read_hdf(f"findable_obs_{obj_type}.h5")
-    already_found_ids = detection_nights[detection_nights < night_start].index
+    print(f"[{time.time() - lap:1.1f}s] Observation files read in")
+    lap = time.time()
     
-    # get the sorted observations for the start night (that have digest2 > 65, >= 3 obs and not yet found)
+    # get the sorted observations for the start night (that have digest2 > 65, >= 3 obs)
     sorted_obs = all_obs[(all_obs["night"] == night_start)
                          & (all_obs["scores"] >= 65)
-                         & (~np.isin(all_obs.index, already_found_ids))
                          & (all_obs["n_obs"] >= 3)].sort_values(["ObjID", "FieldMJD"])
+    unique_objs = sorted_obs.index.unique()
+
+    # work out which objects would have already been found before tonight and remove them
+    # note: the reduced_nights decreases the array size before the `isin` call
+    detection_nights = pd.read_hdf(f"findable_obs_{obj_type}.h5")
+    reduced_nights = detection_nights.loc[list(set(detection_nights.index).intersection(set(unique_objs)))]
+    already_found_ids = reduced_nights[reduced_nights < night_start].index
+    sorted_obs = sorted_obs[~np.isin(sorted_obs.index, already_found_ids)]
     unique_objs = sorted_obs.index.unique()
 
     # get the prior observations that occurred in the past detection window that could possibly contribute
     all_obs = all_obs[(all_obs["night"] > night_start - detection_window) & (all_obs["night"] < night_start)]
     prior_obs = all_obs[all_obs.index.isin(unique_objs)]
 
-    print("Masks applied to observation files")
+    print(f"[{time.time() - lap:1.1f}s] Masks applied to observation files")
+    lap = time.time()
 
     # create a (default)dict of the nights on which observations occurred
     if prior_obs.empty:
@@ -137,7 +145,8 @@ def get_detection_probabilities(night_start, obj_type="neo", detection_window=15
         s = prior_obs.groupby("hex_id").apply(lambda x: list(x["night"].unique()))
         prior_obs_nights = s.to_dict(into=dd)
 
-    print("Everything is prepped and ready for probability calculations - Time to create some offspring")
+    print(f"[{time.time() - lap:1.1f}s] Everything is prepped and ready for probability calculations")
+    lap = time.time()
 
     # calculate detection probabilities
     with Pool(pool_size) as pool:
@@ -148,6 +157,8 @@ def get_detection_probabilities(night_start, obj_type="neo", detection_window=15
                                  first_visit_times=first_visit_times, full_schedule=full_schedule,
                                  night_lengths=night_lengths, night_list=night_list,
                                  detection_window=detection_window, min_nights=min_nights), unique_objs)
+
+    print(f"Finished with the pool! [{time.time() - lap:1.1f}s]")
 
     if save_results:
         np.save(f"latest_runs/{obj_type}_night{night_start}_probs.npy", (probs, unique_objs))
