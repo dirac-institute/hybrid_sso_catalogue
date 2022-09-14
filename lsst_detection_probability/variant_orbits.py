@@ -183,7 +183,7 @@ def variant_orbit_ephemerides(ra, dec, ra_end, dec_end, delta_t, obstime, distan
         perihelion = orbits_class.keplerian[:, 0] * (1 - orbits_class.keplerian[:, 1])
         orbits_class = thor.Orbits(orbits=corrected_orbits[perihelion < 1.3],
                                    epochs=Time(corrected_t0[perihelion < 1.3], format="mjd"),
-                                   H=H[perihelion < 1.3])
+                                   H=H[perihelion < 1.3] if H is not None else H)
 
     # default to one day after the observation
     if eph_times is None:
