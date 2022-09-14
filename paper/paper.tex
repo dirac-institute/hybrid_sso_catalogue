@@ -61,7 +61,7 @@
 \keywords{Near-Earth objects, Asteroids, Solar system, Small Solar System bodies, Surveys}
 
 \section{Introduction} \label{sec:intro}
-Near-Earth Objects (NEOs) are objects that may come close enough to the Earth that small perturbations in their orbit lead to a collision course. A simple definition for NEOs is that there are small solar system bodies that have a perihelion less than $1.3 \unit{AU}$ \needcite{}. Given the threat posed by these objects, it is therefore critical that we catalogue and determine the orbit of NEOs.
+Near-Earth Objects (NEOs) are objects that may come close enough to the Earth that small perturbations in their orbit lead to a collision course. A simple definition for NEOs is that there are small solar system bodies that have a perihelion less than $1.3 \unit{AU}$ \citep[e.g.][]{Jones+2018}. Given the threat posed by these objects, it is therefore critical that we catalogue and determine the orbit of NEOs.
 
 The Minor Planet Center maintains a catalogue of known NEOs and their orbits\footnote{\url{https://www.minorplanetcenter.net/iau/MPCORB/NEA.txt}}, as well as the NEO confirmation page (NEOCP\footnote{\url{https://www.minorplanetcenter.net/iau/NEO/toconfirm_tabular.html}}), which lists potential NEOs that should be prioritised for additional observations by the NEO follow-up community. An object is only listed on the NEOCP when it has a high probability of being an NEO. This probability is quantified using the \dig{} code, which assigns a score between 0 and 100 and only objects with a score of 65 or more are listed on the page \citep{Keys+2019}. Currently, on average around two dozen objects are added to the NEOCP on each night.
 
@@ -71,16 +71,16 @@ Given this increased discovery rate, if LSST operates in the same way as current
 
 This paper quantifies the impact of LSST on the NEOCP and the fraction of objects that require community follow-up.
 
-Our paper is structured as follows. In Section~\ref{sec:method}, we describe the methods for creating a hybrid catalogue of objects, simulating LSST observations and calculating \dig{} scores for the NEOCP. \todo{Outline rest of paper} \placeholder{2}
+Our paper is structured as follows. In Section~\ref{sec:method}, we describe the methods for simulating LSST observations, calculating \dig{} scores for the NEOCP and our algorithm for predicting whether LSST will detect an object based on a single night of observations. In Section~\ref{sec:results}, we present our findings for the total number and type of objects submitted to the NEOCP by LSST. Based on these results, in Section~\ref{sec:discussion} we present recommendations for how objects should be submitted to the NEOCP from LSST. We conclude in Section~\ref{sec:conclusion}.
 
 \section{Method} \label{sec:method}
-In order to make predictions for the NEOCP in the era of LSST, we make simulated observations of a catalogue of solar system objects that takes into account currently known objects. We then use the \dig{} code to calculate NEO scores for each object and use these values to make predictions for the NEOCP. In the subsections below we explain each of these steps in more details.
+In order to make predictions for the NEOCP in the era of LSST, we make simulated observations of a catalogue of solar system objects that takes into account currently known objects. We then use the \dig{} code to calculate NEO scores for each object and use these values to make predictions for the NEOCP. Additionally, we present an algorithm for predicting whether LSST will detect an object given a single night of observations. In the subsections below we explain each of these steps in more details.
 
 \subsection{Simulated Observations}
 
-In order to investigate the effect of LSST sources on the NEOCP, we use simulated observations of the hybrid catalogue.
+In order to investigate the effect of LSST sources on the NEOCP, we use a `hybrid' solar system object catalogue. This catalogue contains both real and synthetic objects, whilst retaining the same overall distributions in position, velocity and absolute magnitude found in the purely synthetic catalogue (see Appendix~\ref{app:hybrid}).
 
-\todo{Should probably talk about whatever Sam did here \needcite{}} \placeholder{3}
+We perform mock LSST observations using a baseline v2.1 10 year \texttt{OpSim} simulation \citep{Bianco+2022}. These observations account for both scheduled and unscheduled downtime and simulate the current baseline observing strategy that will be followed by LSST. \todo{Mario should check this (and the citation)}
 
 \subsection{\dig{} Score Calculation}\label{sec:digest2_score}
 The main criterion for an object to be placed on the NEOCP is for it to receive an NEO score of at least 65. This score from 0 to 100 assesses the probability that the object is an NEO and is calculated using the \dig{} code \citep{Keys+2019}. We therefore use the same code to check which of the simulated observations of the hybrid catalogue could be submitted to the NEOCP.
