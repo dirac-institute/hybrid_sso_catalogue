@@ -85,13 +85,21 @@ We perform mock LSST observations using a baseline v2.1 10 year \texttt{OpSim} s
 \subsection{\dig{} Score Calculation}\label{sec:digest2_score}
 The main criterion for an object to be placed on the NEOCP is for it to receive an NEO score of at least 65. This score from 0 to 100 assesses the probability that the object is an NEO and is calculated using the \dig{} code \citep{Keys+2019}. We therefore use the same code to check which of the simulated observations of the hybrid catalogue could be submitted to the NEOCP.
 
-We use \dig{} to calculate the NEO score of each NEO and MBA in the hybrid catalogue that is observed in the first year. We apply three further cuts before considering which submissions are eligible for the NEOCP.
+We use \dig{} to calculate the NEO score of each NEO and MBA in the hybrid catalogue that is observed in the first year. We apply three further cuts before considering which submissions are eligible for the NEOCP \needcite{}.
 \begin{enumerate}
-    \item \textbf{Number of observations:} We consider only objects which have at least 2 observations on a given night (though we investigate the effect of making this limit more stringent below)
-    \item \textbf{Minimum arc length:} We ensure that each arc is at least 1 arcsecond in length \needcite{}
-    \item \textbf{Maximum time separation:} We set the maximum time between observations to 90 minutes \needcite{}. Thus we only allow tracklets that have at least one pair of observations that occur within 90 minutes of each other
+    \item \textbf{Number of observations:} We consider only objects which have at least 2 observations on a given night (though we investigate the effect of making this limit more stringent - see Section.~\ref{sec:traffic_basic})
+    \item \textbf{Minimum arc length:} We ensure that each arc is at least 1 arcsecond in length
+    \item \textbf{Maximum time separation:} We set the maximum time between observations to 90 minutes. Thus we only allow tracklets that have at least one pair of observations that occur within 90 minutes of each other
 \end{enumerate}
-With these cuts and the NEO scores of each object we are able to assess the load on the NEOCP from LSST.
+
+In Figure~\ref{fig:digest2_example} we show the distribution of \dig{} scores for the NEOs and MBAs in the first year of observations. As expected most NEOs have scores around 100 and most MBAs have scores around 0. However, we highlight that due to the volume of MBAs, the \dig{} score does not perform well in classifying NEOs. In particular, even an object assigned a score of 100 only has around a 3\% chance of actually being an NEO.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\columnwidth]{digest2_pollution.png}
+    \caption{\dig{} scores for all NEOs and MBAs observed in the first year of our simulated LSST observations. The top panel shows normalised histograms, the middle panel shows un-normalised histograms and the final panel shows the ratio of the histogram in the middle panel. Note that the latter two panels are on a logarithmic scale.}
+    \label{fig:digest2_example}
+\end{figure}
 
 \subsection{Estimating LSST Detection Probability}\label{sec:pred_alg}
 \begin{figure*}[htb]
@@ -118,7 +126,7 @@ We estimate the probability of the object being detected by LSST, $P({\rm detect
 where $\theta_{i}$ is a heaviside step function that is 1 if the orbit produces a detection and 0 otherwise, and $w_i$ is the weight associated with that orbit \todo{which is yet to be determined}.
 
 \section{Results} \label{sec:results}
-\subsection{Traffic and Purity of the NEOCP}
+\subsection{Traffic and Purity of the NEOCP}\label{sec:traffic_basic}
 \begin{figure*}
     \centering
     \includegraphics[width=\textwidth]{traffic_purity.png}
