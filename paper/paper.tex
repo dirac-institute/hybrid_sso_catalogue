@@ -181,7 +181,13 @@ In Figure~\ref{fig:digest2_example} we highlighted that \dig{} struggles to dist
 For this reason, it is important to consider whether there are improvements that can be made to the \dig{} algorithm in distinguishing between NEOs and MBAs. Given the required suppression factor for MBAs and extensive prior work done on this algorithm, it is unlikely that such improvements would be able to eliminate this problem entirely. However, it is possible that there are still particular cases or particular areas of the sky in which the distinction would be improved. For example, the algorithm could take into account the location of the ecliptic at the time of observations
 
 \subsection{Await reduced MBA background}
-The main problem currently stems from the excessive MBA background relative the NEO population. 
+The main problem currently stems from the excessive MBA background relative the NEO population. We expect that after the first year of observations LSST will discover approximately $85\%$ of all MBAs down to its flux limit \needcite{}. This will strongly suppress the number of MBAs that would submitted to the NEOCP.
+
+At the same time, we expect a significant fraction of NEOs to be smaller objects that come for infrequent close approaches and so even with new detections we still expect a constant flux of new NEOs \needcite{}. In this way the number of NEOs that are submitted to the page would remain roughly constant.
+
+Therefore, once most of the MBAs have been identified, the traffic and purity of NEOCP submissions from LSST would be significantly improved. Indeed, when applying our LSST detection probability algorithm in addition to this, we expect that the resulting traffic and purity would approximate the ideal case described in Section~\ref{sec:no_LSST_detections}.
+
+The disadvantage of this approach of course is that any NEOs that will not be re-observed after the first year will not be sent for follow-up and may be lost.
 
 \section{Conclusion \& Summary} \label{sec:conclusion}
 
