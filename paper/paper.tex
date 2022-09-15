@@ -178,7 +178,7 @@ As we have shown above, even when applying our LSST detection probability algori
 \subsection{Improve \dig{} algorithm}
 In Figure~\ref{fig:digest2_example} we highlighted that \dig{} struggles to distinguish between NEOs and MBAs when dealing with the extreme volumes of MBAs that LSST will observe. When using the first year of simulated LSST observations, we find that only ${\sim}1.5\%$ of objects with a \dig{} NEO score of at least 65 (the threshold for submission to the NEOCP) are in fact NEOs.
 
-For this reason, it is important to consider whether there are improvements that can be made to the \dig{} algorithm in distinguishing between NEOs and MBAs. Given the required suppression factor for MBAs and extensive prior work done on this algorithm, it is unlikely that such improvements would be able to eliminate this problem entirely. However, it is possible that there are still particular cases or particular areas of the sky in which the distinction would be improved. For example, the algorithm could take into account the location of the ecliptic at the time of observations
+For this reason, it is important to consider whether there are improvements that can be made to the \dig{} algorithm in distinguishing between NEOs and MBAs. Given the required suppression factor for MBAs and extensive prior work done on this algorithm, it is unlikely that such improvements would be able to eliminate this problem entirely. However, it is possible that there are still particular cases or particular areas of the sky in which the distinction would be improved. For example, the algorithm could take into account the location of the ecliptic at the time of observations.
 
 \subsection{Await reduced MBA background}
 The main problem currently stems from the excessive MBA background relative the NEO population. We expect that after the first year of observations LSST will discover approximately $85\%$ of all MBAs down to its flux limit \needcite{}. This will strongly suppress the number of MBAs that would submitted to the NEOCP.
@@ -189,15 +189,13 @@ Therefore, once most of the MBAs have been identified, the traffic and purity of
 
 The disadvantage of this approach of course is that any NEOs that will not be re-observed after the first year will not be sent for follow-up and may be lost.
 
-\section{Conclusion \& Summary} \label{sec:conclusion}
-
-\todo{Write and summary and spruce up the items below}
+\section{Summary \& Conclusions} \label{sec:conclusion}
+We present new predictions for the NEOCP in the era of LSST. We perform mock LSST observations and use \dig{} to estimate the number of objects that LSST would send to the NEOCP using the current criteria. We create a new algorithm for predicting whether an object will be detected by LSST without external follow-up based on a single night of observations in order to reduce the load on the NEOCP. Our main conclusions can be summarised as:
 
 \begin{enumerate}
-    % \item \textbf{Hybrid Catalogue:} We produce and make available a hybrid catalogue that combines a simulated catalogue \citep{Grav+2011} with detections from \mpco{}. This distributions of the six orbital elements as well as the absolute magnitude in this catalogue are unchanged from \sss{}. The hybrid catalogue can be used to make predictions for LSST that account for prior detections (see Section~\ref{app:hybrid}).
-    \item \textbf{NEOCP traffic and purity from LSST:} We show that the traffic (number of objects submitted) and purity (fraction of objects that are NEOs) of the NEOCP will be severely impacted by LSST. We demonstrate that if LSST follows current submission guidelines that the NEOCP would be unable to handle the volume of submissions
-    \item \textbf{NEOCP without LSST detections:} We highlight that the traffic and purity of the NEOCP remain at acceptable levels if LSST only submits objects that it won't detect alone
-    \item \textbf{LSST detection probability prediction:}
+    \item \textbf{The NEOCP would be overwhelmed by LSST using current submission criteria}\\We show that the traffic (number of objects submitted) and purity (fraction of objects that are NEOs) of the NEOCP will be severely impacted by LSST. In particular, the traffic will increase by over two orders of magnitude to between 1000-20000 objects per night, whilst the purity would range from 0.2\%-10\% (Section~\ref{sec:traffic_basic}).
+    \item \textbf{Our algorithm would improve the impact on the NEOCP, but not solve the problem}\\The application of our LSST detection prediction algorithm would reduce the traffic back to reasonable levels of approximately ${\sim }169$ objects per night. However the purity still remains at an average of $6\%$ due to the large MBA background (Section~\ref{sec:using_alg}).
+    \item \textbf{NEO follow-up from LSST should not be attempted in the first year}\\Due to the vast number of MBA observations in the first year we recommend that follow-up should not be attempted until the second year. At this point around $85\%$ of MBAs will have been identified, whilst the rate of NEO observations will remain roughly constant and so the purity of NEOCP submissions from LSST would return to reasonable levels when using our algorithm (Section~\ref{sec:discussion}).
 \end{enumerate}
 
 \begin{acknowledgements}
