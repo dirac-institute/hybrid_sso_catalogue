@@ -96,7 +96,7 @@ In Figure~\ref{fig:digest2_example} we show the distribution of \dig{} scores fo
 
 \begin{figure}
     \centering
-    \includegraphics[width=\columnwidth]{digest2_pollution.png}
+    \includegraphics[width=\columnwidth]{digest2_pollution.pdf}
     \caption{\dig{} scores for all NEOs and MBAs observed in the first year of our simulated LSST observations. The top panel shows normalised histograms, the middle panel shows un-normalised histograms and the final panel shows the ratio of the histogram in the middle panel. Note that the latter two panels are on a logarithmic scale.}
     \label{fig:digest2_example}
 \end{figure}
@@ -127,7 +127,7 @@ Each orbit is defined as producing a detection if it has at least 3 observations
 \subsection{Traffic and purity of the NEOCP using current criteria}\label{sec:traffic_basic}
 \begin{figure*}
     \centering
-    \includegraphics[width=\textwidth]{traffic_purity.png}
+    \includegraphics[width=\textwidth]{traffic_purity.pdf}
     \caption{Traffic (number of objects sent) and purity (fraction of objects sent that are NEOs) of the NEOCP during the first year of LSST if every observation that qualifies for submission is submitted. Each line is plotted using a rolling window of a week to smooth stochastic effects. Different lines correspond to different constraints on the number of observations for a tracklet to be submitted. Nights on which no observations were taken are highlighted with grey areas.}
     \label{fig:neocp_traffic}
 \end{figure*}
@@ -142,7 +142,7 @@ There are two periodic effects that can be noted in both the traffic and the pur
 
 \begin{figure*}
     \centering
-    \includegraphics[width=\textwidth]{traffic_purity_unfindable.png}
+    \includegraphics[width=\textwidth]{traffic_purity_unfindable.pdf}
     \caption{As Figure~\ref{fig:neocp_traffic}, but only including objects that would not be detected by LSST alone. Note the y-scale of the lower panel is now linear.}
     \label{fig:neocp_traffic_unfindable}
 \end{figure*}
@@ -153,8 +153,8 @@ Overall, it is clear that if we proceed in the same manner as is currently recom
 
 \begin{figure*}[htb]
     \centering
-    \includegraphics[width=\textwidth]{contingency_neo.png}
-    \includegraphics[width=\textwidth]{contingency_mba.png}
+    \includegraphics[width=\textwidth]{contingency_neo.pdf}
+    \includegraphics[width=\textwidth]{contingency_mba.pdf}
     \caption{A demonstration of the prediction algorithm described in Section~\ref{sec:pred_alg} using 1 year of simulated observations for both NEOs (top) and MBAs (bottom). \textbf{Left:} Probability that an object will be detected within 15 nights, split into a population of objects that are \textit{actually} detected within 15 nights in the simulated observations and a population that are not. The red dashed line indicates our threshold of 0.7 for submission to the NEOCP. Note that the histogram is on a logarithmic scale for the MBAs. \textbf{Right:} A contingency matrix representing the algorithm's ability to predict the detectability of an object.}
     \label{fig:contingency}
 \end{figure*}
@@ -173,8 +173,15 @@ In the right side of Figure~\ref{fig:contingency}, we show contingency matrices 
 Overall, when applying this threshold, we find that, on average, $169$ objects would be submitted to the NEOCP per night, but only around $6\%$ (${\sim}10$) of those objects would be NEOs. Moreover, $784$ NEOs would remain undetected by LSST and not be sent to the NEOCP for follow-up. This method would reduce the traffic on the NEOCP by well over an order of magnitude but still has only a small impact on increasing the purity of the sample to acceptable levels.
 
 \section{Discussion} \label{sec:discussion}
-\subsection{Improving \dig{} algorithm}
-\subsection{Await MBA Identification}
+As we have shown above, even when applying our LSST detection probability algorithm, the NEOCP would be overwhelmed by submissions from LSST and significantly more MBAs would be submitted than NEOs. In this section we consider recommendations for how to mitigate these issues and ensure that the NEOCP remains functional in the era of LSST.
+
+\subsection{Improve \dig{} algorithm}
+In Figure~\ref{fig:digest2_example} we highlighted that \dig{} struggles to distinguish between NEOs and MBAs when dealing with the extreme volumes of MBAs that LSST will observe. When using the first year of simulated LSST observations, we find that only ${\sim}1.5\%$ of objects with a \dig{} NEO score of at least 65 (the threshold for submission to the NEOCP) are in fact NEOs.
+
+For this reason, it is important to consider whether there are improvements that can be made to the \dig{} algorithm in distinguishing between NEOs and MBAs. Given the required suppression factor for MBAs and extensive prior work done on this algorithm, it is unlikely that such improvements would be able to eliminate this problem entirely. However, it is possible that there are still particular cases or particular areas of the sky in which the distinction would be improved. For example, the algorithm could take into account the location of the ecliptic at the time of observations
+
+\subsection{Await reduced MBA background}
+The main problem currently stems from the excessive MBA background relative the NEO population. 
 
 \section{Conclusion \& Summary} \label{sec:conclusion}
 
@@ -188,10 +195,10 @@ Overall, when applying this threshold, we find that, on average, $169$ objects w
 \end{enumerate}
 
 \begin{acknowledgements}
-    Acknowledgements
+    \todo{Acknowledgements}
 \end{acknowledgements}
 
-\software{\dig{} v0.19.2 \citep{Keys+2019}, \texttt{OpenOrb} \citep{Granvik+2009}, \texttt{difi} \citep{difi}, \texttt{THOR} \citep{Moeyens+2021}, \texttt{Astropy} \citep{astropy:2013, astropy:2018, astropy:2022}, \texttt{astroML} \citep{VanderPlas+2012,VanderPlas+2014}, \texttt{scipy} \citep{Virtanen+2020}}
+\software{\dig{} v0.19.2 \citep{Keys+2019}, \texttt{OpenOrb} \citep{Granvik+2009}, \texttt{difi} \citep{difi}, \texttt{THOR} \citep{Moeyens+2021}, \texttt{Astropy} \citep{astropy:2013, astropy:2018, astropy:2022}, \texttt{astroML} \citep{VanderPlas+2012,VanderPlas+2014}, \texttt{scipy} \citep{Virtanen+2020} \todo{check I didn't miss any}}
 
 \bibliographystyle{aasjournal}
 \bibliography{paper}{}
@@ -219,7 +226,7 @@ To complete the merging process, we compile the matched object IDs and delete th
 \subsection{Assessing quality of hybrid catalogue}\label{app:hybrid_quality}
 It is essential that the underlying distributions of the hybrid catalogue do not differ significantly from \sss{} so that we still accurately reproduce the solar system. In Figure~\ref{fig:hybrid_vs_s3m_dists}, we show the distributions of the absolute magnitude and six orbital elements in both the hybrid catalogue and \sss{}. It is evident that the distributions are essentially identical.
 
-As a further check, we compared \mpco{} to the objects that were removed from \sss{}, since these should have nearly identical distributions. In Figure~\ref{fig:density_compare}, we show a comparison of the densities for the heliocentric $x$ and $y$ and it is clear that these distributions are left unchanged in the hybrid catalogue.
+As a further check, we compared \mpco{} to the objects that were removed from \sss{}, since these should have nearly identical distributions other than MPCORB objects that had no matches. In Figure~\ref{fig:density_compare}, we show a comparison of the densities for the heliocentric $x$ and $y$ and it is clear that these distributions are left unchanged in the hybrid catalogue.
 \begin{figure*}[htb]
     \centering
     \includegraphics[width=\textwidth]{hybrid_vs_s3m_distributions.pdf}
