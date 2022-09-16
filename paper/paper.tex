@@ -52,10 +52,12 @@
 \email{tomjwagg@gmail.com}
 
 \begin{abstract}
-    \todo{}
-    \placeholder{1}
+    The Legacy Survey of Space and Time (LSST) is expected to vastly increase the rate at which we observe Near-Earth Objects (NEOs). We present new predictions for the impact that LSST will have on the NEO confirmation page (NEOCP). We use mock LSST observations and the \dig{} code to predict the effect of LSST on the NEOCP when using current submission criteria. We additionally create an algorithm for predicting whether LSST will detect an object based on a single night of observations to reduce LSST's impact on the NEOCP.
 
-    \placeholder{2}
+    We find that, when using current submission criteria, LSST would submit between 1000 and 20,000 new objects to the NEOCP each night, which is 2 to 3 orders of magnitude higher than the current rates. In addition, only between 0.2-10\% of these objects would be NEOs, where the rest are main belt asteroids (MBAs). We show that our algorithm can predict whether LSST will detect an object without external follow-up from a single night of observations with an efficiency of around $77\%$. However, even with this algorithm enabled, LSST would still submit around $169$ objects per night on average, where only ${\sim}6\%$ of them would be NEOs. We therefore recommend that NEO follow-up from LSST should not be attempted for the first year of the survey. After this point enough MBAs will have been identified that a large fraction of the objects that LSST submits to the NEOCP will in fact be NEOs.
+    % \placeholder{1}
+
+    % \placeholder{2}
 \end{abstract}
 
 \keywords{Near-Earth objects, Asteroids, Solar system, Small Solar System bodies, Surveys}
@@ -65,11 +67,11 @@ Near-Earth Objects (NEOs) are objects that may come close enough to the Earth th
 
 The Minor Planet Center maintains a catalogue of known NEOs and their orbits\footnote{\url{https://www.minorplanetcenter.net/iau/MPCORB/NEA.txt}}, as well as the NEO confirmation page (NEOCP\footnote{\url{https://www.minorplanetcenter.net/iau/NEO/toconfirm_tabular.html}}), which lists potential NEOs that should be prioritised for additional observations by the NEO follow-up community. An object is only listed on the NEOCP when it has a high probability of being an NEO. This probability is quantified using the \dig{} code, which assigns a score between 0 and 100 and only objects with a score of 65 or more are listed on the page \citep{Keys+2019}. Currently, on average around two dozen objects are added to the NEOCP on each night.
 
-The Legacy Survey of Space and Time (LSST) will rapidly increase the rate at which NEOs are discovered and sent to the NEOCP. \todo{need more details} \placeholder{1}
+The Legacy Survey of Space and Time \citep[LSST][]{Ivezic+2019} will rapidly increase the rate at which NEOs are discovered and sent to the NEOCP. \citet{Jones+2018} showed that at the end of the 10-year LSST baseline survey the completeness of NEOs with an absolute magnitude of $H \le 22$ would be 73\%. \todo{probably need more details here, e.g.\ how many NEOs discovered in only a year, like in Mario's scary AAS presentations}
 
-Given this increased discovery rate, if LSST operates in the same way as current telescopes that work on NEO discovery, the number of objects submitted to the NEOCP will increase by several orders of magnitude. This will make it difficult for the follow-up community to prioritise particular objects and may lead to some objects being missed. However, many of the objects that LSST observes will be re-observed and discovered by LSST alone, though there will still be a sizeable fraction of objects that require community follow-up. It is therefore important to identify this fraction so that the follow-up community can effectively prioritise observations.
+Given this increased discovery rate, if LSST operates in the same way as current telescopes that work on NEO discovery, we expect that the number of objects submitted to the NEOCP will increase by several orders of magnitude. This will make it difficult for the follow-up community to prioritise particular objects and would lead to many objects being missed as it would not be possible to follow up each submitted object. However, many of the objects that LSST observes will be re-observed and discovered by LSST alone, though there will still be a sizeable fraction of objects that require community follow-up. It is therefore important to identify this fraction so that the follow-up community can effectively prioritise observations.
 
-This paper quantifies the impact of LSST on the NEOCP and the fraction of objects that require community follow-up.
+The aim of this paper is to quantify the impact of LSST on the NEOCP and consider possible strategies to mitigate this impact. We therefore performed mock LSST observations and used \dig{} to assess which objects observed by LSST would be submitted to the NEOCP. We also create a new algorithm for predicting whether LSST will detect an object given a single night of observations. We apply this algorithm to the mock observations and quantify the improvement that this has fpr the impact of LSST on the NEOCP.
 
 Our paper is structured as follows. In Section~\ref{sec:method}, we describe the methods for simulating LSST observations, calculating \dig{} scores for the NEOCP and our algorithm for predicting whether LSST will detect an object based on a single night of observations. In Section~\ref{sec:results}, we present our findings for the total number and type of objects submitted to the NEOCP by LSST. Based on these results, in Section~\ref{sec:discussion} we present recommendations for how objects should be submitted to the NEOCP from LSST. We conclude in Section~\ref{sec:conclusion}.
 
@@ -80,19 +82,19 @@ In order to make predictions for the NEOCP in the era of LSST, we make simulated
 
 In order to investigate the effect of LSST sources on the NEOCP, we use a `hybrid' solar system object catalogue. This catalogue contains both real and synthetic objects, whilst retaining the same overall distributions in position, velocity and absolute magnitude found in the purely synthetic catalogue (see Appendix~\ref{app:hybrid}).
 
-We perform mock LSST observations using a baseline v2.1 10 year \texttt{OpSim} simulation \citep{Bianco+2022}. These observations account for both scheduled and unscheduled downtime and simulate the current baseline observing strategy that will be followed by LSST. \todo{Mario should check this (and the citation)}
+We perform mock LSST observations using a baseline v2.1 10 year \texttt{OpSim} simulation \citep{opsim, Cornwall+2020}. These observations account for both scheduled and unscheduled downtime and simulate the current baseline observing strategy that will be followed by LSST. \todo{Mario should check this because I don't know what I'm talking about}
 
 \subsection{\dig{} Score Calculation}\label{sec:digest2_score}
 The main criterion for an object to be placed on the NEOCP is for it to receive an NEO score of at least 65. This score from 0 to 100 assesses the probability that the object is an NEO and is calculated using the \dig{} code \citep{Keys+2019}. We therefore use the same code to check which of the simulated observations of the hybrid catalogue could be submitted to the NEOCP.
 
-We use \dig{} to calculate the NEO score of each NEO and MBA in the hybrid catalogue that is observed in the first year. We apply three further cuts before considering which submissions are eligible for the NEOCP \needcite{}.
+We use \dig{} to calculate the NEO score of each NEO and MBA in the hybrid catalogue that is observed in the first year. We apply three further cuts based on the Rubin Observatory system specifications before considering which submissions are eligible for the NEOCP \citep{oss}.
 \begin{enumerate}
     \item \textbf{Number of observations:} We consider only objects which have at least 2 observations on a given night (though we investigate the effect of making this limit more stringent - see Section.~\ref{sec:traffic_basic})
     \item \textbf{Minimum arc length:} We ensure that each arc is at least 1 arcsecond in length
     \item \textbf{Maximum time separation:} We set the maximum time between observations to 90 minutes. Thus we only allow tracklets that have at least one pair of observations that occur within 90 minutes of each other
 \end{enumerate}
 
-In Figure~\ref{fig:digest2_example} we show the distribution of \dig{} scores for the NEOs and MBAs in the first year of observations. As expected most NEOs have scores around 100 and most MBAs have scores around 0. However, we highlight that due to the volume of MBAs, the \dig{} score does not perform well in classifying NEOs. In particular, even an object assigned a score of 100 only has around a 3\% chance of actually being an NEO. \todo{not sure if this is right place}
+In Figure~\ref{fig:digest2_example} we show the distribution of \dig{} scores for the NEOs and MBAs in the first year of observations. As expected most NEOs have scores around 100 and most MBAs have scores around 0. However, we highlight that due to the volume of MBAs, the \dig{} score does not perform well in classifying NEOs. In particular, even an object assigned a score of 100 only has around a 3\% chance of actually being an NEO. \todo{not sure if this is right place for this}
 
 \begin{figure}
     \centering
@@ -105,7 +107,7 @@ In Figure~\ref{fig:digest2_example} we show the distribution of \dig{} scores fo
 \begin{figure*}[htb]
     \centering
     \includegraphics[width=\textwidth]{methods_placeholder.png}
-    \caption{A demonstration of the LSST detection probability prediction. Black circles (to scale with $2.1^{\circ}$ radii) represent a bounding circle of LSST's camera footprint for each visit in this night's predicted schedule. For each orbit we plot the object's predicted location at the start and end of the night and colour them by the assumed distance. In cyan we show true position of the object and outline any visits that produce an observation in cyan also.}
+    \caption{A demonstration of the LSST detection probability prediction. Black circles (to scale with $2.1^{\circ}$ radii) represent a bounding circle of LSST's camera footprint for each visit in this night's predicted schedule. For each orbit we plot the object's predicted location at the start and end of the night and colour them by the assumed distance. In cyan we show true position of the object and outline any visits that produce an observation in cyan also. \todo{pick a nice object for this plot}}
     \label{fig:circles}
 \end{figure*}
 
@@ -115,16 +117,22 @@ In order to determine the location of an object on the following nights one need
 \begin{equation}
     O = \{ \alpha, \delta, t \}
 \end{equation}
-where $\alpha$ is the right ascension, $\delta$ is the declination and $t$ is the time of observation. One can then determine the proper motion of the object on the sky, ($\dot{\alpha}$, $\dot{\delta}$), by calculating the change in position over time between the two observations. This determines 4 and the 6 orbital elements, but the topocentric distance, $D$ and radial velocity, $\dot{D}$ of the object are unconstrained.
+where $\alpha$ is the right ascension, $\delta$ is the declination and $t$ is the time of observation. We determine the proper motion of the object on the sky, ($\dot{\alpha}$, $\dot{\delta}$), by calculating the change in position between the two observations using \texttt{Astropy SkyCoord} and dividing by the time between observations. This determines 4 of the 6 orbital elements, but the topocentric distance, $D$ and radial velocity, $\dot{D}$ of the object are unconstrained.
 
-We draw a sample of $D$ uniformly in log-space between $[0.1, 10] \unit{AU}$ and a sample of $\dot{D}$ uniformly between $[-50, 10] \unit{km}{s^{-1}}$ to create a grid of $(D, \dot{D})$. Combining these with the measured $(\alpha, \delta, \dot{\alpha}, \dot{\delta})$ values (and adding $0.1^{\prime\prime}$ of scatter to the measured on-sky positions to account for the detector uncertainty), we create a series of possible variant orbits for the object and adjust them to account for the light travel time using \texttt{THOR} \citep{Moeyens+2021}. Since we are only interested in NEOs, we mask out any orbits that have a perihelion distance of greater than $1.3 \unit{AU}$. Additionally, we determine the absolute magnitude of the object for each orbit using the HG-system. We convert the apparent magnitudes of the observations in the first night to V-band magnitudes using the LSST colour definitions, assuming a C-type asteroid \citep{Jones+2018}. We then use the mean observed V-band magnitude, the assumed distances and a fixed slope parameter of $G = 0.15$ \needcite{} to calculate the current absolute magnitude.
+We draw a sample of $D$ uniformly in log-space between $[0.1, 10] \unit{AU}$ and a sample of $\dot{D}$ uniformly between $[-50, 10] \unit{km}{s^{-1}}$ to create a grid of $(D, \dot{D})$. Combining these with the measured $(\alpha, \delta, \dot{\alpha}, \dot{\delta})$ values (and adding $0.1^{\prime\prime}$ of scatter to the measured on-sky positions to account for the detector uncertainty), we create a series of possible variant orbits for the object and adjust them to account for the light travel time using \texttt{THOR} \citep{Moeyens+2021}. Since we are only interested in NEOs, we mask out any orbits that have a perihelion distance of greater than $1.3 \unit{AU}$.
+
+Additionally, we determine the absolute magnitude of the object for each orbit using the HG-system \citep{mpc_h_g}. We convert the apparent magnitudes of the observations in the first night to V-band magnitudes using the LSST colour definitions, assuming a C-type asteroid \citep{Jones+2018}. We then calculate the phase angle of the asteroid, $\alpha$, as
+\begin{equation}
+    \cos \alpha = \frac{D_{a, \odot}^2 + D_{a, \oplus}^2 - D_{\odot, \oplus}^2}{2 D_{a, \odot}^2 D_{a, \oplus}^2}
+\end{equation}
+where $D_{a, \odot}$ is the distance between the asteroid and the Sun, $D_{a, \oplus}$ is the distance between the asteroid and the Earth and $D_{\odot, \oplus}$ is the distance from the Sun to the Earth. We then use the mean observed V-band magnitude, the assumed distances, the phase angle and a fixed slope parameter of $G = 0.15$ \citep{mpc_h_g} to calculate the current absolute magnitude.
 
 Finally, using \texttt{OpenOrb}, we produce ephemerides for the orbits for each visit in the following 14 nights of the predicted schedule that the object could potentially reach based on its observed on-sky motion \citep{Granvik+2009}. For each orbit and each field, we check whether the object is within the LSST camera footprint of the field using \texttt{rubin\_sim}\footnote{\url{https://github.com/lsst/rubin\_sim}}. We additionally convert the predicted apparent magnitude back to the relevant filter and assess whether the object has an apparent magnitude brighter than the $5\sigma$ depth of field. If both of these criteria are met then we assume an observation has been made. We show an example of the predictions produced by this method in Figure~\ref{fig:circles}
 
-Each orbit is defined as producing a detection if it has at least 3 observations on at least 3 nights in a 15 day window, requiring that the minimum arc length is 1 arcsecond and that the maxmimum separation between observations is 90 minutes. We additionally account for all prior observations in this calculation. For example, if we were determining the probability of detection for an object that is observed on night 10 and has previously been observed on night 8, even if we only predict that it will be observed on night 14 in the next 15 days, this would still be deemed a detection. We estimate the overall probability of the object being detected by LSST as a simple fraction of orbits that produce detections.
+Each orbit is defined as producing a detection if it has at least 3 observations on at least 3 nights in a 15 day window, requiring that the minimum arc length is 1 arcsecond and that the maxmimum separation between observations is 90 minutes \citep{oss}. We additionally account for all prior observations in this calculation. For example, if we were determining the probability of detection for an object that is observed on night 10 and has previously been observed on night 8, even if we only predict that it will be observed on night 14 in the next 15 days, this would still be deemed a detection. We estimate the overall probability of the object being detected by LSST as a simple fraction of orbits that produce detections.
 
 \section{Results} \label{sec:results}
-\subsection{Traffic and purity of the NEOCP using current criteria}\label{sec:traffic_basic}
+\subsection{LSST's impact on the NEOCP using current submission criteria}\label{sec:traffic_basic}
 \begin{figure*}
     \centering
     \includegraphics[width=\textwidth]{traffic_purity.pdf}
@@ -138,7 +146,7 @@ The current typical traffic of the NEOCP is on the order of two dozen new submis
 
 The purity of the NEOCP is also severely impacted by LSST observations, with the abundance of MBA observations polluting the page as false NEOs. For almost the entire year the page will have a purity below 10\%, meaning that only 1 in 10 objects on the page is actually an NEO, and the value can be as low as 0.2\%. As noted in Section~\ref{sec:digest2_score}, this is due to the sheer abundance of MBAs in LSST observations. Therefore, given these purity levels a significant amount of follow-up time would be wasted in investigating MBAs masquerading as NEOs.
 
-There are two periodic effects that can be noted in both the traffic and the purity panels. There is a clear seasonal variation over the year as the ecliptic plane moves through the sky. LSST observes from the southern hemisphere and thus in first half of the year when the ecliptic is at lower declinations, more MBAs will be observed \todo{I think this is backwards...but it definitely peaks in the first half??}. This both increases the traffic and decreases the purity of the NEOCP. In addition to this long term variation, there are also shorter term variations that are most clearly seen in the purity panel. On day 17 and approximately every 30 days after this there is a periodic decrease in the purity of the page. This coincides with the occurrence of a full moon, since LSST has to observe a different part of the sky during this time and this leads to more MBA detections and thus lower purity. \todo{left this a bit handwavy, need to check with Mario}
+There are two periodic effects that can be noted in both the traffic and the purity panels. There is a clear seasonal variation over the year as the ecliptic plane moves through the sky. LSST observes from the southern hemisphere and thus in first half of the year when the ecliptic is at lower declinations, more MBAs will be observed \todo{@Mario I think this I have this backwards, ecliptic is high in July right? ...but the traffic definitely peaks in the first half??}. This both increases the traffic and decreases the purity of the NEOCP. In addition to this long term variation, there are also shorter term variations that are most clearly seen in the purity panel. On day 17 and approximately every 30 days after this there is a periodic decrease in the purity of the page. This coincides with the occurrence of a full moon, since LSST has to observe a different part of the sky during this time and this leads to more MBA detections and thus lower purity. \todo{I left this a bit handwavy, need to check with Mario}
 
 \begin{figure*}
     \centering
@@ -159,7 +167,7 @@ Overall, it is clear that if we proceed in the same manner as is currently recom
     \label{fig:contingency}
 \end{figure*}
 
-LSST will be able to detect and characterise many potential NEOs without any external input. This means that many of the objects submitted to the NEOCP will actual result in wasted follow-up time by the community. We assess the magnitude of this effect using the python package \texttt{difi} \citep{difi}. This package calculates which objects are detected by LSST, where a detection is defined as occurring when the same object is observed on at least 3 separate nights within a 15 day window, each with at least 2 observations separated by at most 90 minutes \needcite{}.
+LSST will be able to detect and characterise many potential NEOs without any external input. This means that many of the objects submitted to the NEOCP will actual result in wasted follow-up time by the community. We assess the magnitude of this effect using the python package \texttt{difi} \citep{difi}. This package calculates which objects are detected by LSST, where a detection is defined as occurring when the same object is observed on at least 3 separate nights within a 15 day window, each with at least 2 observations separated by at most 90 minutes \citep{oss}.
 
 In Figure~\ref{fig:neocp_traffic_unfindable}, we repeat Figure~\ref{fig:neocp_traffic}, but now only including objects that would not be detected by LSST alone. This represents a best case scenario in which we had foreknowledge of which observed objects would be detected. In this scenario we see that the traffic from LSST rarely exceeds more than 100 objects and is often only a handful. Similarly the purity is much higher, with an average of around 25\%. We conclude that if we were to know whether an object would be detected by LSST, the load on the NEOCP would remain at manageable levels. For this reason we developed the algorithm that predicts whether an object will be detected by LSST alone (described in Section~\ref{sec:pred_alg}) and assess the situation when applying this algorithm in Section~\ref{sec:using_alg}
 
@@ -181,9 +189,9 @@ In Figure~\ref{fig:digest2_example} we highlighted that \dig{} struggles to dist
 For this reason, it is important to consider whether there are improvements that can be made to the \dig{} algorithm in distinguishing between NEOs and MBAs. Given the required suppression factor for MBAs and extensive prior work done on this algorithm, it is unlikely that such improvements would be able to eliminate this problem entirely. However, it is possible that there are still particular cases or particular areas of the sky in which the distinction would be improved. For example, the algorithm could take into account the location of the ecliptic at the time of observations.
 
 \subsection{Await reduced MBA background}
-The main problem currently stems from the excessive MBA background relative the NEO population. We expect that after the first year of observations LSST will discover approximately $85\%$ of all MBAs down to its flux limit \needcite{}. This will strongly suppress the number of MBAs that would submitted to the NEOCP.
+The main problem currently stems from the excessive MBA background relative the NEO population. We expect that after the first year of observations LSST will discover approximately $85\%$ of all MBAs down to its flux limit \citep{Juric+2020}. This will strongly suppress the number of MBAs that would submitted to the NEOCP.
 
-At the same time, we expect a significant fraction of NEOs to be smaller objects that come for infrequent close approaches and so even with new detections we still expect a constant flux of new NEOs \needcite{}. In this way the number of NEOs that are submitted to the page would remain roughly constant.
+At the same time, we expect a significant fraction of NEOs to be smaller objects that come for infrequent close approaches and so even with new detections we still expect a constant flux of new NEOs \citep{Juric+2020}. In this way the number of NEOs that are submitted to the page would remain roughly constant.
 
 Therefore, once most of the MBAs have been identified, the traffic and purity of NEOCP submissions from LSST would be significantly improved. Indeed, when applying our LSST detection probability algorithm in addition to this, we expect that the resulting traffic and purity would approximate the ideal case described in Section~\ref{sec:no_LSST_detections}.
 
@@ -199,10 +207,10 @@ We present new predictions for the NEOCP in the era of LSST. We perform mock LSS
 \end{enumerate}
 
 \begin{acknowledgements}
-    \todo{Acknowledgements}
+    We thank \todo{some of these may be co-authors I imagine but at least Joachim Moeyens, Peter Yoachim, Sam Cornwall, Aren Heinze, Pedro Bernardenelli, Catalina people?} for insightful discussions.
 \end{acknowledgements}
 
-\software{\dig{} v0.19.2 \citep{Keys+2019}, \texttt{OpenOrb} \citep{Granvik+2009}, \texttt{difi} \citep{difi}, \texttt{THOR} \citep{Moeyens+2021}, \texttt{Astropy} \citep{astropy:2013, astropy:2018, astropy:2022}, \texttt{astroML} \citep{VanderPlas+2012,VanderPlas+2014}, \texttt{scipy} \citep{Virtanen+2020} \todo{check I didn't miss any}}
+\software{\dig{} v0.19.2 \citep{Keys+2019}, \texttt{OpenOrb} \citep{Granvik+2009}, \texttt{difi} \citep{difi}, \texttt{THOR} \citep{Moeyens+2021}, \texttt{Astropy} \citep{astropy:2013, astropy:2018, astropy:2022}, \texttt{astroML} \citep{VanderPlas+2012,VanderPlas+2014}, \texttt{scipy} \citep{Virtanen+2020} \todo{add usuals (numpy, pandas etc.)}}
 
 \bibliographystyle{aasjournal}
 \bibliography{paper}{}
@@ -213,7 +221,7 @@ We present new predictions for the NEOCP in the era of LSST. We perform mock LSS
 \appendix
 
 \section{Hybrid Catalogue Pipeline}\label{app:hybrid}
-Most studies that make predictions for LSST use a synthetic catalogue of solar system objects that doesn't account for prior observations \needcite{}. In reality, we have already detected more than a million objects in the solar system and this number will continue to grow until LSST comes online. This means that, current predictions of detection rates will be inflated since a fraction of ``new'' detections may already be known. Therefore, for this paper we created ``hybrid'' catalogue that combines a synthetic catalogue with all known observations, whilst keeping the population distributions relatively unchanged.
+Many studies that make predictions for LSST use a synthetic catalogue of solar system objects that doesn't account for prior observations. In reality, we have already detected more than a million objects in the solar system and this number will continue to grow until LSST comes online. This means that, current predictions of detection rates will be inflated since a fraction of ``new'' detections may already be known. Therefore, for this paper we created ``hybrid'' catalogue that combines a synthetic catalogue with all known observations, whilst keeping the population distributions relatively unchanged.
 
 We created the hybrid catalogue to be dynamic, such that we can run a single pipeline to merge in an updated version of \mpco{} as more objects are discovered in the time until LSST comes online. All code to reproduce this hybrid catalogue is open-source and available on GitHub\footnote{\url{https://github.com/dirac-institute/hybrid_sso_catalogue/tree/main/hybridcat/hybridcat}}.
 
