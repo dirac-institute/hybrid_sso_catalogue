@@ -122,7 +122,7 @@ We draw a sample of $D$ uniformly in log-space between $[0.1, 10] \unit{AU}$ and
 \begin{figure}[htb]
     \centering
     \includegraphics[width=\columnwidth]{orbits_example.pdf}
-    \caption{Variant orbits that we compute for an example NEO in our sample based on a single night of mock LSST observations. The white arrow indicates the initial sight-line for the observation. The blue dotted line indicates the orbit of the Earth. \todo{unsure if this plot belongs, but it helped me visualise the orbits}}
+    \caption{Variant orbits that we compute for an example NEO in our sample based on a single night of mock LSST observations. The white arrow indicates the initial sight-line for the observation. The blue dotted line indicates the orbit of the Earth. Background stars are for illustrative purposes only. \todo{unsure if this plot belongs, but it helped me visualise the orbits}}
     \label{fig:orbits}
 \end{figure}
 
@@ -133,13 +133,15 @@ We draw a sample of $D$ uniformly in log-space between $[0.1, 10] \unit{AU}$ and
     \label{fig:circles}
 \end{figure}
 
-Additionally, we determine the absolute magnitude of the object for each orbit using the HG-system \citep{mpc_h_g}. We convert the apparent magnitudes of the observations in the first night to V-band magnitudes using the LSST colour definitions, assuming a C-type asteroid \citep{Jones+2018}. We then calculate the phase angle of the asteroid, $\alpha$, as
+Additionally, we determine the absolute magnitude of the object for each orbit using the $HG$-system \citep{mpc_h_g}. We use the LSST colour definitions, assuming a C-type asteroid, to convert the apparent magnitudes of the initial observations to V-band magnitudes \citep{Jones+2018}. We additionally calculate the phase angle of the asteroid, $\alpha$, as
 \begin{equation}
     \cos \alpha = \frac{D_{a, \odot}^2 + D_{a, \oplus}^2 - D_{\odot, \oplus}^2}{2 D_{a, \odot}^2 D_{a, \oplus}^2}
 \end{equation}
-where $D_{a, \odot}$ is the distance between the asteroid and the Sun, $D_{a, \oplus}$ is the distance between the asteroid and the Earth and $D_{\odot, \oplus}$ is the distance from the Sun to the Earth. We then use the mean observed V-band magnitude, the assumed distances, the phase angle and a fixed slope parameter of $G = 0.15$ \citep{mpc_h_g} to calculate the current absolute magnitude.
+where $D_{a, \odot}$ is the distance between the asteroid and the Sun, $D_{a, \oplus}$ is the distance between the asteroid and the Earth and $D_{\odot, \oplus}$ is the distance from the Sun to the Earth. We then use the mean observed V-band magnitude, the assumed distances, the phase angle and a fixed slope parameter of $G = 0.15$ (as is customary) to calculate the current absolute magnitude \citep{mpc_h_g}.\
 
-Finally, using \texttt{OpenOrb}, we produce ephemerides for the orbits for each visit in the following 14 nights of the predicted schedule that the object could potentially reach based on its observed on-sky motion \citep{Granvik+2009}. For each orbit and each field, we check whether the object is within the LSST camera footprint of the field using \texttt{rubin\_sim} \citep{rubin_sim}. We additionally convert the predicted apparent magnitude back to the relevant filter and assess whether the object has an apparent magnitude brighter than the $5\sigma$ depth of field. If both of these criteria are met then we assume an observation has been made. We show an example of the predictions produced by this method in Figure~\ref{fig:circles}
+For each night in the first year, we use \texttt{rubin\_sim} to create a predicted schedule for the following 14 nights, our assumed detection window \citep{rubin_sim}. These predicted schedules represent an estimate of where LSST will look next and as such account for scheduled downtime, but do not include unscheduled downtime or poor weather conditions. This means the predicted schedule may include visits on nights where no observations were possible or that the reduced seeing means that fainter objects would be missed.
+
+Finally, using \texttt{OpenOrb}, we produce ephemerides for the orbits for each visit in the following 14 nights of the predicted schedule that the object could potentially reach based on its observed on-sky motion \citep{Granvik+2009}. For each orbit and each field, we check whether the object is within the LSST camera footprint of the field using \texttt{rubin\_sim} \citep{rubin_sim}. We additionally convert the predicted apparent magnitude back to the relevant filter and assess whether the object has an apparent magnitude brighter than the $5\sigma$ depth of field. If both of these criteria are met then we assume an observation has been made. We show an example of the predictions produced by this method in Figure~\ref{fig:circles}.
 
 Each orbit is defined as producing a detection if it has at least 3 observations on at least 3 nights in a 15 day window, requiring that the minimum arc length is 1 arcsecond and that the maxmimum separation between observations is 90 minutes \citep{oss}. We additionally account for all prior observations in this calculation. For example, if we were determining the probability of detection for an object that is observed on night 10 and has previously been observed on night 8, even if we only predict that it will be observed on night 14 in the next 15 days, this would still be deemed a detection. We estimate the overall probability of the object being detected by LSST as a simple fraction of orbits that produce detections.
 
