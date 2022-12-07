@@ -176,7 +176,8 @@ class HybridCreator():
             print("Building hybrid catalogue")
 
         # convert both catalogues to cometary coordinates
-        self.transform_both_to_cometary()
+        # HACK: Don't do this because OpenOrb has that stupid bug
+        # self.transform_both_to_cometary()
 
         if self.verbose:
             print("Both catalogues transformed back to cometary")

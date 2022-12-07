@@ -120,6 +120,7 @@ def variant_orbit_ephemerides(ra, dec, ra_end, dec_end, delta_t, obstime, distan
             ra = np.repeat(ra.value, repeats=size) * ra.unit
             ra_end = np.repeat(ra_end.value, repeats=size) * ra_end.unit
         else:
+            # TODO: check with Mario about adding scatter near poles
             ra = np.random.normal(ra.value, scale=sigma_ra.to(ra.unit).value, size=size) * ra.unit
             ra_end = np.random.normal(ra_end.value, scale=sigma_ra.to(ra_end.unit).value, size=size) * ra_end.unit
 

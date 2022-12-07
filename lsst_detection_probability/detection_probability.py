@@ -407,7 +407,7 @@ def plot_LSST_schedule_with_orbits(schedule, reachable_schedule, ephemerides, jo
         return None, None
 
     # plot each schedule with difference colours and widths
-    for table, colour, lw in zip([schedule, reachable_schedule], ["black", "tab:green"], [1, 2]):
+    for table, colour, lw in zip([schedule, reachable_schedule], ["black", "#000000"], [1, 1]):
         # ensure you only get the current night
         table_mask = table["night"] == night
 
