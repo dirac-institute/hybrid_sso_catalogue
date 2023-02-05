@@ -1,6 +1,0 @@
-{
-    "jupyter.jupyterServerType": "remote",
-    "python.linting.flake8Enabled": true,
-    "python.linting.enabled": true,
-    "latex-workshop.latex.autoClean.run": "onBuilt"
-}
