@@ -11,7 +11,7 @@ import argparse
 class HybridCreator():
     def __init__(self, catalogue_folder="catalogues/", output_folder="output/",
                  d_max=0.1, n_neighbours=100, propagate_date="2022-03-01", recreate=False,
-                 dynmodel="2", H_bins=np.arange(-2, 28 + 1), n_workers=48, memory_limit="16GB", timeout=300,
+                 dynmodel="2", H_bins=np.arange(-2, 28 + 1), n_workers=48,
                  save_all=True, save_final=True, verbose=False):
         """HybridCreator masterClass used for creating a hybrid catalogue
 
@@ -34,11 +34,7 @@ class HybridCreator():
         H_bins : `list`, optional
             Magnitude bins to split the catalogues into during merge, by default np.arange(-2, 28 + 1)
         n_workers : `int`, optional
-            How many workers to use with dask whilst merging, by default 48
-        memory_limit : `str`, optional
-            How much memory to assign each worker, by default "16GB"
-        timeout : `int`, optional
-            Dask timeout, by default 300
+            How many workers to use whilst merging, by default 48
         save_all : `bool`, optional
             Whether to save every dataframe at each preprocessing step, by default True
         save_final : `bool`, optional
@@ -55,8 +51,6 @@ class HybridCreator():
         self.dynmodel = dynmodel
         self.H_bins = H_bins
         self.n_workers = n_workers
-        self.memory_limit = memory_limit
-        self.timeout = timeout
         self.save_all = save_all
         self.save_final = save_final
         self.verbose = verbose
@@ -139,8 +133,7 @@ class HybridCreator():
         if self.verbose:
             print("Starting the merge now")
         merge_catalogues(self.mpcorb, self.s3m, output_folder=self.output_folder, H_bins=self.H_bins,
-                         n_workers=self.n_workers, memory_limit=self.memory_limit, timeout=self.timeout,
-                         k=self.n_neighbours, d_max=self.d_max)
+                         n_workers=self.n_workers, k=self.n_neighbours, d_max=self.d_max)
         if self.verbose:
             print("Done merging!")
 
@@ -228,11 +221,7 @@ def merge_it():
                         help='Magnitude bins to split the catalogues into during merge,\
                               by default range(-2, 28 + 1)')
     parser.add_argument('-w', '--workers', default=48, type=int,
-                        help='How many workers to use with dask whilst merging, by default 48')
-    parser.add_argument('-l', '--mem-limit', default="16GB", type=str,
-                        help='How much memory to assign each worker, by default "16GB"')
-    parser.add_argument('-t', '--timeout', default=300, type=int,
-                        help='Dask timeout, by default 300')
+                        help='How many workers to use whilst merging, by default 48')
     parser.add_argument('-s', '--save-all', action="store_true",
                         help='Whether to save every dataframe at each preprocessing step, by default True')
     parser.add_argument('-f', '--save-final', action="store_true",
@@ -250,8 +239,7 @@ def merge_it():
                                 d_max=args.max_distance, n_neighbours=args.neighbours,
                                 propagate_date=args.propagate_date, recreate=args.recreate_files,
                                 dynmodel=args.dynmodel, H_bins=args.H_bins, n_workers=args.workers,
-                                memory_limit=args.mem_limit, timeout=args.timeout, save_all=args.save_all,
-                                save_final=args.save_final, verbose=args.verbose)
+                                save_all=args.save_all, save_final=args.save_final, verbose=args.verbose)
     if args.skip_prep:
         the_creator.mpcorb = pd.read_hdf(the_creator.catalogue_folder + "mpcorb_propagated_cart.h5", key="df")
         the_creator.s3m = pd.read_hdf(the_creator.catalogue_folder + "s3m_propagated_cart.h5", key="df")
