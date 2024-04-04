@@ -1,11 +1,8 @@
 from scipy.spatial import cKDTree
 import numpy as np
-import pandas as pd
-import dask
-from dask.distributed import Client, wait
+from multiprocessing import Pool
 
 
-@dask.delayed
 def merge_magnitude_bin(sim, real, min_mag, max_mag, k=100, d_max=0.1, output_folder="output/"):
     """Merge the simulated solar system catalogue with the real MPCORB data for a certain magnitude bin.
 
@@ -74,9 +71,8 @@ def merge_magnitude_bin(sim, real, min_mag, max_mag, k=100, d_max=0.1, output_fo
             
     return np.array(sim_id[taken])
 
-
 def merge_catalogues(mpcorb, s3m, output_folder="output/", H_bins=np.arange(-2, 28 + 1), n_workers=48,
-                     memory_limit="16GB", timeout=300, k=100, d_max=0.1):
+                     k=100, d_max=0.1):
     """Merge mpcorb and s3m!
 
     Parameters
@@ -91,10 +87,6 @@ def merge_catalogues(mpcorb, s3m, output_folder="output/", H_bins=np.arange(-2, 
         Magnitude bins, by default np.arange(-2, 28 + 1)
     n_workers : `int`, optional
         How many workers to use, by default 48
-    memory_limit : `str`, optional
-        Limit on the memory used by each worker, by default "16GB"
-    timeout : `int`, optional
-        Timeout for dask, by default 300
     k : `int`, optional
         Number of neighbours to consider in matching, by default 100
     d_max : `float`, optional
@@ -105,24 +97,10 @@ def merge_catalogues(mpcorb, s3m, output_folder="output/", H_bins=np.arange(-2, 
     matched_ids : `list`
         The IDs of S3m objects that can be replaced by MPCORB ones
     """
-    # start the Dask client
-    client = Client(n_workers=n_workers, threads_per_worker=1, memory_limit=memory_limit)
+    def args(H_bins):
+        for left, right in zip(H_bins[:-1], H_bins[1:]):
+            yield s3m, mpcorb, left, right, k, d_max, output_folder
 
-    # scatter the catalogues to avoid huge files
-    s3m_handle, = client.scatter([s3m], broadcast=True)
-    mpcorb_handle, = client.scatter([mpcorb], broadcast=True)
-    
-    # prepare the run each magnitude bin
-    output = []
-    for left, right in zip(H_bins[:-1], H_bins[1:]):
-        output.append(merge_magnitude_bin(sim=s3m_handle, real=mpcorb_handle, min_mag=left, max_mag=right,
-                                          k=k, d_max=d_max, output_folder=output_folder))
-        
-    # set them all running
-    results = client.compute(output, timeout=timeout)
-    wait(results)
-
-    # save the final result in 
-    # np.save(output_folder + "all.npy", results)
-
+    with Pool(n_workers) as pool:
+        results = pool.starmap(merge_magnitude_bin, args(H_bins))
     return results
