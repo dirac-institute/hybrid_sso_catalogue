@@ -170,7 +170,7 @@ class HybridCreator():
             self.mpcorb.to_hdf(self.catalogue_folder + "mpcorb_propagated_cometary.h5", key="df", mode="w")
             self.s3m.to_hdf(self.catalogue_folder + "s3m_propagated_cometary.h5", key="df", mode="w")
 
-    def save_hybrid(self):
+    def save_hybrid(self, file_name="hybrid.h5"):
         """ Save the hybrid catalogue as a new h5 file """
         if self.verbose:
             print("Building hybrid catalogue")
@@ -204,7 +204,7 @@ class HybridCreator():
             print("MPCORB injected into modified S3M")
 
         # save it and celebrate
-        self.hybrid.to_hdf(self.catalogue_folder + "hybrid.h5", key="df", mode="w")
+        self.hybrid.to_hdf(self.catalogue_folder + file_name, key="df", mode="w")
 
 def merge_it():
     """ Quick function that does the whole merging process (using this as entry point) """
