@@ -192,7 +192,7 @@ class HybridCreator():
             print("Replacement IDs collected")
 
         # delete them
-        remaining_s3m = self.s3m.drop(self.s3m.iloc[delete_these].index.values, axis=0)
+        remaining_s3m = self.s3m[~self.s3m.id.isin(delete_these)]
 
         if self.verbose:
             print("IDs dropped from S3M")
