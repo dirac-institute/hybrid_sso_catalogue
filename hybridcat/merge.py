@@ -28,6 +28,7 @@ def merge_magnitude_bin(sim, real, min_mag, max_mag, k=100, d_max=0.1, output_fo
     taken_ids : `float/array`
         An array of the ids that have been replaced by the real objects in this magnitude bin
     """
+    print(f"Merging bin {min_mag}-{max_mag}")
     real_xyz = np.array([real["x"].values, real["y"].values, real["z"].values]).T
     sim_xyz = np.array([sim["x"].values, sim["y"].values, sim["z"].values]).T
 
@@ -67,7 +68,7 @@ def merge_magnitude_bin(sim, real, min_mag, max_mag, k=100, d_max=0.1, output_fo
         elif len(unassigned_inds) == 1:
             taken.append(unassigned_inds[0])
 
-    np.save(output_folder + "matched_{}_{}.npy".format(min_mag, max_mag), np.array(sim_id[taken]))
+    np.save(f"{output_folder}matched_{min_mag}_{max_mag}.npy", np.array(sim_id[taken]))
             
     return np.array(sim_id[taken])
 
@@ -102,5 +103,5 @@ def merge_catalogues(mpcorb, s3m, output_folder="output/", H_bins=np.arange(-2, 
             yield s3m, mpcorb, left, right, k, d_max, output_folder
 
     with Pool(n_workers) as pool:
-        results = pool.starmap(merge_magnitude_bin, args(H_bins))
+        results = list(pool.starmap(merge_magnitude_bin, args(H_bins)))
     return results
