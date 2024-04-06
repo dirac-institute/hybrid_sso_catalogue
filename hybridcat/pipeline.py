@@ -11,7 +11,7 @@ import argparse
 class HybridCreator():
     def __init__(self, catalogue_folder="catalogues/", output_folder="output/",
                  d_max=0.1, n_neighbours=100, propagate_date="2022-03-01", recreate=False,
-                 dynmodel="2", H_bins=np.arange(-2, 28 + 1), n_workers=48, memory_limit="16GB", timeout=300,
+                 dynmodel="2", H_bins=np.arange(-2, 28 + 0.5, 0.5), n_workers=48, memory_limit="16GB", timeout=300,
                  save_all=True, save_final=True, verbose=False):
         """HybridCreator masterClass used for creating a hybrid catalogue
 
@@ -32,7 +32,7 @@ class HybridCreator():
         dynmodel : `str`, optional
             Which dynmodel to use (2-body or N-body), by default "2"
         H_bins : `list`, optional
-            Magnitude bins to split the catalogues into during merge, by default np.arange(-2, 28 + 1)
+            Magnitude bins to split the catalogues into during merge, by default np.arange(-2, 28 + 0.5, 0.5)
         n_workers : `int`, optional
             How many workers to use with dask whilst merging, by default 48
         memory_limit : `str`, optional

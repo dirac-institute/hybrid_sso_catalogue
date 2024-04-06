@@ -50,6 +50,8 @@ def merge_magnitude_bin(sim, real, min_mag, max_mag, k=100, d_max=0.1, output_fo
     # keep track of objects already assigned
     taken = []
 
+    all_inds = range(len(sim_id))
+
     # iterate over every object in the real catalogue
     for obj, vel in zip(real_objects, real_velocities):
 
@@ -61,7 +63,7 @@ def merge_magnitude_bin(sim, real, min_mag, max_mag, k=100, d_max=0.1, output_fo
         unassigned_inds = np.setdiff1d(inds, taken, assume_unique=True)
 
         # if there are many matching object
-        if len(unassigned_inds) > 0:
+        if len(unassigned_inds) > 1:
             # find the closest velocity of the bunch and assign it
             best = np.sum((v_sim[:, unassigned_inds] - vel[:, np.newaxis])**2, axis=0).argmin()
             taken.append(unassigned_inds[best])
@@ -70,12 +72,16 @@ def merge_magnitude_bin(sim, real, min_mag, max_mag, k=100, d_max=0.1, output_fo
         elif len(unassigned_inds) == 1:
             taken.append(unassigned_inds[0])
 
+        # if none are found nearby then pick a random object from the same magnitude bin
+        else:
+            taken.append(np.random.choice(np.setdiff1d(all_inds, taken, assume_unique=True)))
+
     np.save(output_folder + "matched_{}_{}.npy".format(min_mag, max_mag), np.array(sim_id[taken]))
             
     return np.array(sim_id[taken])
 
 
-def merge_catalogues(mpcorb, s3m, output_folder="output/", H_bins=np.arange(-2, 28 + 1), n_workers=48,
+def merge_catalogues(mpcorb, s3m, output_folder="output/", H_bins=np.arange(-2, 28 + 0.5, 0.5), n_workers=48,
                      memory_limit="16GB", timeout=300, k=100, d_max=0.1):
     """Merge mpcorb and s3m!
 
@@ -88,7 +94,7 @@ def merge_catalogues(mpcorb, s3m, output_folder="output/", H_bins=np.arange(-2, 
     output_folder : `str`, optional
         Path to the output folder, by default "output/"
     H_bins : `list`, optional
-        Magnitude bins, by default np.arange(-2, 28 + 1)
+        Magnitude bins, by default np.arange(-2, 28 + 0.5, 0.5)
     n_workers : `int`, optional
         How many workers to use, by default 48
     memory_limit : `str`, optional
