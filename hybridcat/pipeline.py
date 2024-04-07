@@ -6,6 +6,7 @@ from astropy.time import Time
 import numpy as np
 import pandas as pd
 import argparse
+from os.path import isfile
 
 
 class HybridCreator():
@@ -185,8 +186,9 @@ class HybridCreator():
         # first work out which S3m objects we can delete
         delete_these = []
         for left, right in zip(self.H_bins[:-1], self.H_bins[1:]):
-            matched = np.load(self.output_folder + "matched_{}_{}.npy".format(left, right))
-            delete_these.extend(matched)
+            match_file = f"{self.output_folder}matched_{left}_{right}.npy"
+            if isfile(match_file):
+                delete_these.extend(np.load(match_file))
             
         if self.verbose:
             print("Replacement IDs collected")

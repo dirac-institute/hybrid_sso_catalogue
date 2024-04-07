@@ -43,7 +43,7 @@ def merge_magnitude_bin(sim, real, min_mag, max_mag, k=100, d_max=0.1, output_fo
     tree = cKDTree(sim_xyz[sim_mag_mask])
 
     # get the matching real data from MPCORB
-    real_mag_mask = np.logical_and(real.H >= min_mag, real.H <= max_mag)
+    real_mag_mask = np.logical_and(real.H >= min_mag, real.H < max_mag)
     real_objects = real_xyz[real_mag_mask]
     real_velocities = v_real[real_mag_mask]
 
