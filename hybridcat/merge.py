@@ -52,6 +52,12 @@ def merge_magnitude_bin(sim, real, min_mag, max_mag, k=100, d_max=0.1, output_fo
 
     all_inds = range(len(sim_id))
 
+    # check if there are enough simulated objects to match all real objects
+    if len(sim_id) <= len(real_objects):
+        print("WARNING: Not enough simulated objects to match all real objects in magnitude bin {}-{}".format(min_mag, max_mag))
+        np.save(output_folder + "matched_{}_{}.npy".format(min_mag, max_mag), np.array(sim_id))
+        return np.array(sim_id)
+
     # iterate over every object in the real catalogue
     for obj, vel in zip(real_objects, real_velocities):
 
